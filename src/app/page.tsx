@@ -1,0 +1,286 @@
+import Link from 'next/link';
+import { CheckCircle, Package, Star, Building2, ArrowRight, Truck } from 'lucide-react';
+import { biscuits, formulas } from '@/lib/data';
+
+export default function HomePage() {
+  const featured = biscuits.slice(0, 4);
+
+  return (
+    <div className="bg-[#FFF8F0]">
+
+      {/* HERO */}
+      <section className="relative overflow-hidden bg-[#3D2B1F] text-white">
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #F4A460 0%, transparent 60%), radial-gradient(circle at 80% 20%, #D2691E 0%, transparent 50%)' }}
+        />
+        <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32 flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1 text-center md:text-left">
+            <span className="inline-block bg-[#F4A460] text-[#3D2B1F] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4">
+              Biscuits artisanaux
+            </span>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight" style={{ fontFamily: 'Georgia, serif' }}>
+              Votre box de<br />
+              <span className="text-[#F4A460]">biscuits Louvat</span><br />
+              chaque mois
+            </h1>
+            <p className="text-lg text-[#D2B48C] mb-8 max-w-md">
+              Sélectionnez vos biscuits préférés parmi notre gamme artisanale. Livraison mensuelle ou trimestrielle, prélèvement SEPA.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+              <Link
+                href="/abonnement"
+                className="bg-[#F4A460] text-[#3D2B1F] px-8 py-4 rounded-full font-bold text-lg hover:bg-[#D2691E] hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
+              >
+                Je m&apos;abonne <ArrowRight className="w-5 h-5" />
+              </Link>
+              <Link
+                href="/box"
+                className="border-2 border-[#F4A460] text-[#F4A460] px-8 py-4 rounded-full font-semibold text-lg hover:bg-[#F4A460] hover:text-[#3D2B1F] transition-all text-center"
+              >
+                Voir les biscuits
+              </Link>
+            </div>
+          </div>
+
+          {/* Visual */}
+          <div className="flex-1 flex justify-center">
+            <div className="relative w-72 h-72 md:w-80 md:h-80">
+              <div className="absolute inset-0 bg-[#8B4513] rounded-3xl rotate-6 opacity-30" />
+              <div className="absolute inset-0 bg-[#F5E6D3] rounded-3xl flex flex-col items-center justify-center p-6 shadow-2xl">
+                <div className="text-6xl mb-4">🍪</div>
+                <div className="text-[#3D2B1F] font-bold text-xl mb-3" style={{ fontFamily: 'Georgia, serif' }}>Louvat Box</div>
+                <div className="grid grid-cols-3 gap-2 mt-1">
+                  {['🍪','🧁','🍫','🥜','🌙','🎂'].map((e, i) => (
+                    <div key={i} className="bg-white rounded-xl p-2 text-center shadow-sm text-xl">{e}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative bg-[#2C1F14] py-4">
+          <div className="max-w-6xl mx-auto px-4 flex flex-wrap justify-center md:justify-around gap-6 text-center">
+            {[
+              { val: '12+', label: 'Variétés de biscuits' },
+              { val: '400+', label: 'Abonnés satisfaits' },
+              { val: '1954', label: 'Maison de qualité depuis' },
+              { val: '100%', label: 'Pur beurre & Artisanal' },
+            ].map((s) => (
+              <div key={s.label}>
+                <div className="text-[#F4A460] font-bold text-xl">{s.val}</div>
+                <div className="text-[#A0856B] text-xs">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LES 3 VALEURS LOUVAT */}
+      <section className="max-w-6xl mx-auto px-4 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#3D2B1F]" style={{ fontFamily: 'Georgia, serif' }}>
+            Maison de qualité depuis 1954
+          </h2>
+          <p className="text-[#8B4513] mt-3">Saint-Geoire-en-Valdaine · Recettes de Patrick Casula, Champion du Monde de Pâtisserie</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {[
+            { icon: <Star className="w-8 h-8" />, title: 'Tradition', desc: 'Plus de 60 ans de recettes inchangées. Chaque biscuit est fabriqué selon les méthodes artisanales transmises depuis 1954.' },
+            { icon: <Package className="w-8 h-8" />, title: 'Qualité', desc: '100% pur beurre, arômes naturels, fournisseurs locaux. Des ingrédients sélectionnés avec soin pour un goût incomparable.' },
+            { icon: <Truck className="w-8 h-8" />, title: 'Plaisir', desc: 'Recettes développées avec Patrick Casula, Champion du Monde de Pâtisserie. Chaque bouchée est une expérience gourmande.' },
+          ].map((item) => (
+            <div key={item.title} className="text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-[#F5E6D3] rounded-2xl text-[#8B4513] mb-4 shadow-sm">
+                {item.icon}
+              </div>
+              <h3 className="text-xl font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>{item.title}</h3>
+              <p className="text-[#6B4226] leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* COMMENT ÇA MARCHE */}
+      <section className="bg-[#3D2B1F] text-white py-16">
+        <div className="max-w-6xl mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-10" style={{ fontFamily: 'Georgia, serif' }}>
+            Comment ça marche ?
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              { step: '1', icon: <Star className="w-8 h-8" />, title: 'Choisissez vos biscuits', desc: 'Parcourez le catalogue Louvat et sélectionnez vos références préférées : palets, sablés, financiers, meringues...' },
+              { step: '2', icon: <Package className="w-8 h-8" />, title: 'Choisissez votre formule', desc: 'Mensuel (25€) ou trimestriel (65€). Prélèvement SEPA automatique, résiliable à tout moment sans frais.' },
+              { step: '3', icon: <Truck className="w-8 h-8" />, title: 'Recevez votre box', desc: 'Votre box Louvat livrée à domicile, emballée avec soin depuis Saint-Geoire-en-Valdaine.' },
+            ].map((item) => (
+              <div key={item.step} className="text-center">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-[#2C1F14] rounded-2xl text-[#F4A460] mb-4">
+                  {item.icon}
+                </div>
+                <div className="text-xs font-bold text-[#F4A460] uppercase tracking-widest mb-2">Étape {item.step}</div>
+                <h3 className="text-lg font-bold mb-2" style={{ fontFamily: 'Georgia, serif' }}>{item.title}</h3>
+                <p className="text-[#D2B48C] text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* APERÇU BISCUITS */}
+      <section className="bg-[#F5E6D3] py-20">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-4">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-[#3D2B1F]" style={{ fontFamily: 'Georgia, serif' }}>
+                Nos biscuits artisanaux
+              </h2>
+              <p className="text-[#8B4513] mt-2">Fabriqués à Saint-Geoire-en-Valdaine depuis 1954. Recettes de Patrick Casula, Champion du Monde de Pâtisserie.</p>
+            </div>
+            <Link href="/box" className="flex items-center gap-2 text-[#8B4513] font-semibold hover:text-[#3D2B1F] transition-colors whitespace-nowrap">
+              Voir tous les biscuits <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {featured.map((b) => (
+              <div key={b.id} className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow border border-[#F4A460]/20">
+                {b.badge && (
+                  <span className="inline-block bg-[#F4A460] text-[#3D2B1F] text-xs font-bold px-2 py-0.5 rounded-full mb-2">
+                    {b.badge}
+                  </span>
+                )}
+                <div className="text-3xl mb-3">🍪</div>
+                <h4 className="font-bold text-[#3D2B1F] text-sm mb-1" style={{ fontFamily: 'Georgia, serif' }}>{b.name}</h4>
+                <p className="text-[#A0856B] text-xs">{b.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FORMULES */}
+      <section className="max-w-6xl mx-auto px-4 py-20">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#3D2B1F]" style={{ fontFamily: 'Georgia, serif' }}>
+            Nos formules d&apos;abonnement
+          </h2>
+          <p className="text-[#8B4513] mt-3">Biscuits pur beurre · Prélèvement SEPA · Résiliation à tout moment · Livraison incluse</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+          {formulas.map((f) => (
+            <div
+              key={f.id}
+              className={`rounded-2xl p-8 border-2 relative ${f.popular ? 'border-[#F4A460] bg-[#3D2B1F] text-white shadow-xl' : 'border-[#F5E6D3] bg-white shadow-sm'}`}
+            >
+              {f.popular && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F4A460] text-[#3D2B1F] text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
+                  ⭐ Recommandé
+                </span>
+              )}
+              <h3 className="text-xl font-bold mb-1" style={{ fontFamily: 'Georgia, serif' }}>{f.label}</h3>
+              <div className="flex items-baseline gap-1 my-3">
+                <span className="text-4xl font-bold">{f.price}€</span>
+                <span className={`text-sm ${f.popular ? 'text-[#D2B48C]' : 'text-[#A0856B]'}`}>
+                  / {f.id === 'mensuel' ? 'mois' : 'trimestre'}
+                </span>
+              </div>
+              {f.id === 'trimestriel' && (
+                <div className="text-[#F4A460] text-sm font-semibold mb-2">soit {f.pricePerMonth.toFixed(2)}€/mois</div>
+              )}
+              <p className={`text-sm mb-6 ${f.popular ? 'text-[#D2B48C]' : 'text-[#8B4513]'}`}>{f.description}</p>
+              <ul className="space-y-2 mb-6">
+                {['Biscuits artisanaux Louvat', 'Sélection personnalisée', 'Livraison incluse', 'Résiliable sans frais'].map((item) => (
+                  <li key={item} className={`flex items-center gap-2 text-sm ${f.popular ? 'text-[#F5E6D3]' : 'text-[#3D2B1F]'}`}>
+                    <CheckCircle className={`w-4 h-4 flex-shrink-0 ${f.popular ? 'text-[#F4A460]' : 'text-green-600'}`} />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href={`/abonnement?formule=${f.id}`}
+                className={`block text-center py-3 rounded-full font-semibold transition-all ${f.popular ? 'bg-[#F4A460] text-[#3D2B1F] hover:bg-[#D2691E] hover:text-white' : 'bg-[#3D2B1F] text-white hover:bg-[#8B4513]'}`}
+              >
+                Choisir cette formule
+              </Link>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CE */}
+      <section className="bg-[#3D2B1F] text-white py-16">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-8 text-center md:text-left">
+          <div className="flex-1">
+            <Building2 className="w-12 h-12 text-[#F4A460] mx-auto md:mx-0 mb-4" />
+            <h2 className="text-3xl font-bold mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+              Vous êtes un Comité d&apos;Entreprise ?
+            </h2>
+            <p className="text-[#D2B48C] max-w-lg">
+              Offrez des biscuits Louvat à vos salariés avec un financement partagé. L&apos;employeur prend en charge une partie,
+              Louvat offre 10% — le salarié ne paie que le reste.
+            </p>
+          </div>
+          <div className="flex-shrink-0 flex flex-col items-center gap-4">
+            <div className="flex gap-4 text-center">
+              <div className="bg-[#2C1F14] rounded-xl p-4">
+                <div className="text-2xl font-bold text-[#F4A460]">10%</div>
+                <div className="text-xs text-[#A0856B]">offerts par Louvat</div>
+              </div>
+              <div className="bg-[#2C1F14] rounded-xl p-4">
+                <div className="text-2xl font-bold text-[#F4A460]">X%</div>
+                <div className="text-xs text-[#A0856B]">pris par l&apos;employeur</div>
+              </div>
+            </div>
+            <Link
+              href="/ce"
+              className="bg-[#F4A460] text-[#3D2B1F] px-6 py-3 rounded-full font-bold hover:bg-[#D2691E] hover:text-white transition-all w-full text-center"
+            >
+              En savoir plus →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* TÉMOIGNAGES */}
+      <section className="max-w-6xl mx-auto px-4 py-20">
+        <h2 className="text-3xl font-bold text-center text-[#3D2B1F] mb-12" style={{ fontFamily: 'Georgia, serif' }}>
+          Ce que disent nos abonnés
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { name: 'Marie L.', text: "Les sablés bretons sont à tomber. Je reçois ma box depuis 6 mois et je ne me lasse pas !", stars: 5 },
+            { name: 'Thomas B.', text: "Super concept ! Pouvoir choisir ses biscuits est un vrai plus. La qualité artisanale se ressent vraiment.", stars: 5 },
+            { name: 'Sophie M.', text: "Notre CE a souscrit pour toute l'entreprise. Les collègues adorent ! La gestion est simple.", stars: 5 },
+          ].map((t) => (
+            <div key={t.name} className="bg-white rounded-2xl p-6 shadow-sm border border-[#F5E6D3]">
+              <div className="flex gap-0.5 mb-3">
+                {Array.from({ length: t.stars }).map((_, i) => (
+                  <span key={i} className="text-[#F4A460]">★</span>
+                ))}
+              </div>
+              <p className="text-[#6B4226] italic mb-4">&ldquo;{t.text}&rdquo;</p>
+              <div className="font-semibold text-[#3D2B1F] text-sm">{t.name}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA FINAL */}
+      <section className="bg-[#F5E6D3] py-16 text-center">
+        <div className="max-w-2xl mx-auto px-4">
+          <div className="text-5xl mb-4">🍪</div>
+          <h2 className="text-3xl font-bold text-[#3D2B1F] mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+            Prêt à vous régaler ?
+          </h2>
+          <p className="text-[#8B4513] mb-8">À partir de 25€/mois. Sans engagement. Résiliable à tout moment.</p>
+          <Link
+            href="/abonnement"
+            className="inline-flex items-center gap-2 bg-[#3D2B1F] text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-[#8B4513] transition-all shadow-lg"
+          >
+            Créer ma box personnalisée <ArrowRight className="w-5 h-5" />
+          </Link>
+        </div>
+      </section>
+    </div>
+  );
+}

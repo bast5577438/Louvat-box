@@ -1,0 +1,56 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# Claude Code (configuration locale propre à cette machine, chemins absolus)
+.claude/
+
+# Documents de travail personnels (guides, démo, présentation)
+# -> utiles en local pour préparer/présenter le projet, mais pas pertinents
+#    dans le dépôt public : on les garde sur la machine, pas sur GitHub
+DEMO_GUIDE.html
+CHECKLIST_TEST.pdf
+PRESENTATION_LOUVAT_BOX.pdf
+GUIDE_GERANTE.md
+GUIDE_GERANTE.pdf
+GUIDE_DEPLOIEMENT.md
+GUIDE_DEPLOIEMENT.pdf
+scripts/
