@@ -3,8 +3,9 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle, ChevronRight, Lock, CreditCard, Package, User } from 'lucide-react';
+import { CheckCircle, ChevronRight, CreditCard, Package, User } from 'lucide-react';
 import { formulas, biscuits, boxSizes } from '@/lib/data';
+import SepaPaymentSection from '@/components/SepaPaymentSection';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -15,7 +16,6 @@ function AbonnementContent() {
   const [ceCode, setCeCode] = useState('');
   const [ceValid, setCeValid] = useState<null | { employerPct: number; valid: boolean }>(null);
   const [form, setForm] = useState({ prenom: '', nom: '', email: '', tel: '', adresse: '', ville: '', cp: '' });
-  const [sepa, setSepa] = useState({ iban: '', titulaire: '' });
   const [submitted, setSubmitted] = useState(false);
 
   const selectedTaille = params.get('taille') ?? 'decouverte';
@@ -46,7 +46,6 @@ function AbonnementContent() {
   // Codes CE de démonstration (remplacés par Supabase après déploiement)
   const MOCK_CE_CODES: Record<string, number> = {
     'CE2024': 30,
-    'BOULOT42': 20,
   };
 
   function checkCeCode() {
@@ -292,64 +291,27 @@ function AbonnementContent() {
             </h2>
             <p className="text-sm text-[#8B4513] mb-6">Votre IBAN est sécurisé et chiffré. Aucune carte bancaire requise.</p>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6 flex items-start gap-2 text-sm text-blue-800">
-              <Lock className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>En fournissant votre IBAN, vous autorisez Louvat Biscuiterie à prélever les montants convenus selon le mandat SEPA. Vous pouvez résilier à tout moment depuis votre espace client.</span>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Titulaire du compte *</label>
-                <input
-                  value={sepa.titulaire}
-                  onChange={(e) => setSepa({ ...sepa, titulaire: e.target.value })}
-                  placeholder="Prénom Nom"
-                  className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#3D2B1F] mb-1">IBAN *</label>
-                <input
-                  value={sepa.iban}
-                  onChange={(e) => setSepa({ ...sepa, iban: e.target.value.replace(/\s/g, '').toUpperCase() })}
-                  placeholder="FR76 XXXX XXXX XXXX XXXX XXXX XXX"
-                  className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-[#8B4513]"
-                />
-                <p className="text-xs text-[#A0856B] mt-1">Format : FR + 25 chiffres (ex: FR7630001007941234567890185)</p>
-              </div>
-            </div>
-
-            {/* Récap final */}
-            <div className="bg-[#F5E6D3] rounded-2xl p-5 my-6">
-              <div className="font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif de votre abonnement</div>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span className="text-[#8B4513]">Formule</span><span className="font-medium text-[#3D2B1F]">{selectedFormula.label}</span></div>
-                <div className="flex justify-between"><span className="text-[#8B4513]">Box</span><span className="font-medium text-[#3D2B1F]">{boxSize.label}</span></div>
-                <div className="flex justify-between"><span className="text-[#8B4513]">Livraison</span><span className="font-medium text-green-700">Gratuite</span></div>
-                <div className="border-t border-[#D2B48C] pt-2 mt-2 flex justify-between font-bold text-[#3D2B1F]">
-                  <span>Montant prélevé</span>
-                  <span className="text-[#8B4513] text-lg">{finalPrice.toFixed(2)}€</span>
-                </div>
-                <div className="text-xs text-[#A0856B]">{selectedFormula.id === 'mensuel' ? 'Chaque mois' : 'Tous les 3 mois'}, à partir du {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR')}</div>
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <button onClick={() => setStep(2)} className="flex-1 border-2 border-[#D2B48C] text-[#8B4513] py-3 rounded-full font-semibold hover:bg-[#F5E6D3] transition-all">
-                Retour
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={!sepa.iban || !sepa.titulaire}
-                className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-full font-bold hover:bg-[#8B4513] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Lock className="w-4 h-4" /> Confirmer l&apos;abonnement
-              </button>
-            </div>
-
-            <p className="text-xs text-center text-[#A0856B] mt-3">
-              En confirmant, vous acceptez nos <a href="/cgv" className="underline hover:text-[#8B4513]">CGV</a> et autorisez le prélèvement SEPA.
-            </p>
+            <SepaPaymentSection
+              billingDetails={{
+                name: `${form.prenom} ${form.nom}`.trim(),
+                email: form.email,
+                address: {
+                  line1: form.adresse,
+                  city: form.ville,
+                  postal_code: form.cp,
+                  country: 'FR',
+                },
+              }}
+              recap={{
+                formuleLabel: selectedFormula.label,
+                boxLabel: boxSize.label,
+                finalPrice,
+                periodLabel: selectedFormula.id === 'mensuel' ? 'Chaque mois' : 'Tous les 3 mois',
+                startDateLabel: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
+              }}
+              onBack={() => setStep(2)}
+              onSuccess={handleSubmit}
+            />
           </div>
         )}
       </div>
