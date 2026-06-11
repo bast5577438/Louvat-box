@@ -13,12 +13,18 @@ import { biscuits as defaultBiscuits, type Biscuit } from '@/lib/data';
 const ADMIN_PASSWORD = 'louvat1954';
 
 /* ── Types ── */
-type CECode = {
+type Prospect = {
   id: string;
-  code: string;
   societe: string;
   contact: string;
   email: string;
+  dateAjout: string;
+};
+
+type CECode = {
+  id: string;
+  code: string;
+  prospectId: string;
   employerPct: number;
   abonnes: number;
   dateCreation: string;
@@ -39,10 +45,16 @@ type Subscriber = {
 };
 
 /* ── Données mock initiales ── */
+const mockProspects: Prospect[] = [
+  { id: '1', societe: 'TechCorp SAS', contact: 'Sophie Martin', email: 'ce@techcorp.fr', dateAjout: '2024-01-10' },
+  { id: '2', societe: 'Industrie du Futur', contact: 'Marc Dupont', email: 'marc@idf.fr', dateAjout: '2024-03-05' },
+  { id: '3', societe: 'Cabinet Notarial Renard', contact: 'Claire Renard', email: 'claire@notaire-renard.fr', dateAjout: '2024-05-20' },
+];
+
 const mockCECodes: CECode[] = [
-  { id: '1', code: 'CE2024', societe: 'TechCorp SAS', contact: 'Sophie Martin', email: 'ce@techcorp.fr', employerPct: 30, abonnes: 14, dateCreation: '2024-01-15', actif: true },
-  { id: '2', code: 'BOULOT42', societe: 'Industrie du Futur', contact: 'Marc Dupont', email: 'marc@idf.fr', employerPct: 20, abonnes: 7, dateCreation: '2024-03-10', actif: true },
-  { id: '3', code: 'SAVEUR50', societe: 'Cabinet Notarial Renard', contact: 'Claire Renard', email: 'claire@notaire-renard.fr', employerPct: 50, abonnes: 3, dateCreation: '2024-06-01', actif: false },
+  { id: '1', code: 'CE2024', prospectId: '1', employerPct: 30, abonnes: 14, dateCreation: '2024-01-15', actif: true },
+  { id: '2', code: 'BOULOT42', prospectId: '2', employerPct: 20, abonnes: 7, dateCreation: '2024-03-10', actif: true },
+  { id: '3', code: 'SAVEUR50', prospectId: '3', employerPct: 50, abonnes: 3, dateCreation: '2024-06-01', actif: false },
 ];
 
 const mockSubscribers: Subscriber[] = [
@@ -63,6 +75,11 @@ export default function AdminPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'produits' | 'ce' | 'abonnes' | 'prospectus'>('produits');
+
+  /* Données partagées entre les onglets CE et Prospectus
+     (un code CE est toujours lié à un contact entreprise) */
+  const [codes, setCodes] = useState<CECode[]>(mockCECodes);
+  const [prospects, setProspects] = useState<Prospect[]>(mockProspects);
 
   /* Vérifier la session */
   useEffect(() => {
@@ -155,7 +172,7 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Abonnés actifs', val: mockSubscribers.filter(s => s.statut === 'actif').length, color: 'text-green-700', bg: 'bg-green-50 border-green-100' },
-            { label: 'Codes CE actifs', val: mockCECodes.filter(c => c.actif).length, color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100' },
+            { label: 'Codes CE actifs', val: codes.filter(c => c.actif).length, color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100' },
             { label: 'Produits en box', val: defaultBiscuits.filter(b => b.available !== false).length, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-100' },
             { label: 'CA mensuel est.', val: `${(mockSubscribers.filter(s => s.statut === 'actif').reduce((a, s) => a + s.prix, 0)).toFixed(0)}€`, color: 'text-purple-700', bg: 'bg-purple-50 border-purple-100' },
           ].map((s) => (
@@ -186,9 +203,9 @@ export default function AdminPage() {
 
         {/* Contenu des onglets */}
         {tab === 'produits' && <TabProduits />}
-        {tab === 'ce' && <TabCE initialCodes={mockCECodes} />}
+        {tab === 'ce' && <TabCE codes={codes} setCodes={setCodes} prospects={prospects} />}
         {tab === 'abonnes' && <TabAbonnes subscribers={mockSubscribers} />}
-        {tab === 'prospectus' && <TabProspectus ceCodes={mockCECodes} />}
+        {tab === 'prospectus' && <TabProspectus prospects={prospects} setProspects={setProspects} codes={codes} />}
       </div>
     </div>
   );
@@ -353,33 +370,58 @@ function TabProduits() {
 
 /* ══════════════════════════════════════════════
    ONGLET CODES CE
+   (gère uniquement les codes : % et statut.
+    Les contacts entreprise se gèrent dans Prospectus)
 ══════════════════════════════════════════════ */
-function TabCE({ initialCodes }: { initialCodes: CECode[] }) {
-  const [codes, setCodes] = useState<CECode[]>(initialCodes);
+function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: React.Dispatch<React.SetStateAction<CECode[]>>; prospects: Prospect[] }) {
+  const [editing, setEditing] = useState<CECode | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Partial<CECode>>({ employerPct: 30, actif: true });
+  const [form, setForm] = useState<Partial<CECode>>({ employerPct: 30 });
   const [saved, setSaved] = useState(false);
 
   function toggleActif(id: string) {
     setCodes((c) => c.map((ce) => ce.id === id ? { ...ce, actif: !ce.actif } : ce));
   }
 
-  function addCode(e: React.FormEvent) {
+  function openNew() {
+    setEditing(null);
+    setForm({ employerPct: 30, prospectId: prospects[0]?.id });
+    setShowForm(true);
+  }
+
+  function openEdit(ce: CECode) {
+    setEditing(ce);
+    setForm({ ...ce });
+    setShowForm(true);
+  }
+
+  function saveCode(e: React.FormEvent) {
     e.preventDefault();
-    const newCode: CECode = {
-      id: Date.now().toString(),
-      code: form.code?.toUpperCase() ?? '',
-      societe: form.societe ?? '',
-      contact: form.contact ?? '',
-      email: form.email ?? '',
-      employerPct: form.employerPct ?? 30,
-      abonnes: 0,
-      dateCreation: new Date().toISOString().split('T')[0],
-      actif: true,
-    };
-    setCodes((c) => [newCode, ...c]);
+    if (!form.prospectId) return;
+    if (editing) {
+      setCodes((c) => c.map((ce) => ce.id === editing.id
+        ? {
+            ...ce,
+            code: (form.code ?? ce.code).toUpperCase(),
+            prospectId: form.prospectId ?? ce.prospectId,
+            employerPct: form.employerPct ?? ce.employerPct,
+          }
+        : ce));
+    } else {
+      const newCode: CECode = {
+        id: Date.now().toString(),
+        code: form.code?.toUpperCase() ?? '',
+        prospectId: form.prospectId,
+        employerPct: form.employerPct ?? 30,
+        abonnes: 0,
+        dateCreation: new Date().toISOString().split('T')[0],
+        actif: true,
+      };
+      setCodes((c) => [newCode, ...c]);
+    }
     setShowForm(false);
-    setForm({ employerPct: 30, actif: true });
+    setEditing(null);
+    setForm({ employerPct: 30 });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -393,58 +435,93 @@ function TabCE({ initialCodes }: { initialCodes: CECode[] }) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-bold text-gray-800">Codes Comité d&apos;Entreprise</h2>
-          <p className="text-gray-500 text-sm">Gérez les entreprises partenaires et leurs remises.</p>
+          <p className="text-gray-500 text-sm">Gérez vos codes de réduction et leur répartition. Les contacts des entreprises se gèrent dans l&apos;onglet <strong>Prospectus</strong>.</p>
         </div>
         <div className="flex items-center gap-3">
-          {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Créé !</span>}
-          <button onClick={() => setShowForm(true)} className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2">
+          {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Enregistré !</span>}
+          <button
+            onClick={openNew}
+            disabled={prospects.length === 0}
+            title={prospects.length === 0 ? 'Ajoutez d\'abord un contact dans Prospectus' : undefined}
+            className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#8B4513]"
+          >
             <Plus className="w-4 h-4" /> Nouveau code CE
           </button>
         </div>
       </div>
 
+      {prospects.length === 0 && (
+        <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 text-sm rounded-xl p-4 mb-4">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          Aucun contact entreprise pour l&apos;instant. Ajoutez-en un dans l&apos;onglet <strong className="font-semibold">Prospectus</strong> avant de créer un code CE.
+        </div>
+      )}
+
       <div className="space-y-4">
-        {codes.map((ce) => (
-          <div key={ce.id} className={`bg-white rounded-2xl border-2 p-5 transition-all ${ce.actif ? 'border-gray-100' : 'border-gray-100 opacity-60'}`}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="bg-[#3D2B1F] text-white font-mono font-bold text-sm px-3 py-1 rounded-lg">{ce.code}</span>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ce.actif ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    {ce.actif ? '● Actif' : '● Inactif'}
-                  </span>
+        {codes.map((ce) => {
+          const prospect = prospects.find((p) => p.id === ce.prospectId);
+          return (
+            <div key={ce.id} className={`bg-white rounded-2xl border-2 p-5 transition-all ${ce.actif ? 'border-gray-100' : 'border-gray-100 opacity-60'}`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="bg-[#3D2B1F] text-white font-mono font-bold text-sm px-3 py-1 rounded-lg">{ce.code}</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ce.actif ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                      {ce.actif ? '● Actif' : '● Inactif'}
+                    </span>
+                  </div>
+                  {prospect ? (
+                    <>
+                      <div className="font-semibold text-gray-800">{prospect.societe}</div>
+                      <div className="text-gray-500 text-sm">{prospect.contact} · {prospect.email}</div>
+                    </>
+                  ) : (
+                    <div className="text-red-400 text-sm italic">Contact introuvable — il a peut-être été supprimé dans Prospectus.</div>
+                  )}
+                  <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">Employeur : {ce.employerPct}%</span>
+                    <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">Louvat : 10%</span>
+                    <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">Salarié : {100 - ce.employerPct - 10}%</span>
+                    <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{ce.abonnes} abonné{ce.abonnes > 1 ? 's' : ''}</span>
+                  </div>
                 </div>
-                <div className="font-semibold text-gray-800">{ce.societe}</div>
-                <div className="text-gray-500 text-sm">{ce.contact} · {ce.email}</div>
-                <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                  <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">Employeur : {ce.employerPct}%</span>
-                  <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">Louvat : 10%</span>
-                  <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">Salarié : {100 - ce.employerPct - 10}%</span>
-                  <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{ce.abonnes} abonné{ce.abonnes > 1 ? 's' : ''}</span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => openEdit(ce)} className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-[#8B4513] transition-all" title="Modifier">
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => toggleActif(ce.id)} className={`p-2 rounded-xl text-sm font-medium transition-all ${ce.actif ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`} title={ce.actif ? 'Désactiver' : 'Activer'}>
+                    {ce.actif ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                  </button>
+                  <button onClick={() => deleteCode(ce.id)} className="p-2 rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Supprimer">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => toggleActif(ce.id)} className={`p-2 rounded-xl text-sm font-medium transition-all ${ce.actif ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}>
-                  {ce.actif ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                </button>
-                <button onClick={() => deleteCode(ce.id)} className="p-2 rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all">
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
+        {codes.length === 0 && (
+          <div className="text-center py-8 text-gray-400">Aucun code CE pour le moment.</div>
+        )}
       </div>
 
-      {/* Modal nouveau code */}
+      {/* Modal nouveau / édition de code */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-gray-800 text-lg">Nouveau code CE</h3>
+              <h3 className="font-bold text-gray-800 text-lg">{editing ? 'Modifier le code CE' : 'Nouveau code CE'}</h3>
               <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-xl"><X className="w-5 h-5" /></button>
             </div>
-            <form onSubmit={addCode} className="space-y-4">
+            <form onSubmit={saveCode} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Contact entreprise *</label>
+                <select required value={form.prospectId ?? ''} onChange={(e) => setForm({ ...form, prospectId: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                  <option value="" disabled>— Choisir un contact —</option>
+                  {prospects.map((p) => <option key={p.id} value={p.id}>{p.societe} — {p.contact}</option>)}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">Le contact n&apos;existe pas encore ? Ajoutez-le dans l&apos;onglet <strong>Prospectus</strong>, puis revenez ici.</p>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Code CE *</label>
@@ -458,18 +535,6 @@ function TabCE({ initialCodes }: { initialCodes: CECode[] }) {
                   </div>
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Société *</label>
-                <input required value={form.societe ?? ''} onChange={(e) => setForm({ ...form, societe: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Responsable CE *</label>
-                <input required value={form.contact ?? ''} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
-              </div>
               <div className="bg-[#F5E6D3] rounded-xl p-3 text-sm">
                 <strong className="text-[#3D2B1F]">Répartition :</strong>
                 <div className="flex gap-2 mt-1 text-xs">
@@ -480,7 +545,7 @@ function TabCE({ initialCodes }: { initialCodes: CECode[] }) {
               </div>
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50">Annuler</button>
-                <button type="submit" className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all">Créer le code</button>
+                <button type="submit" className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all">{editing ? 'Enregistrer les modifications' : 'Créer le code'}</button>
               </div>
             </form>
           </div>
@@ -587,14 +652,69 @@ function TabAbonnes({ subscribers }: { subscribers: Subscriber[] }) {
 
 /* ══════════════════════════════════════════════
    ONGLET PROSPECTUS
+   (répertoire des contacts entreprise — ajout, modification,
+    suppression — + envoi du catalogue trimestriel)
 ══════════════════════════════════════════════ */
-function TabProspectus({ ceCodes }: { ceCodes: CECode[] }) {
+function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect[]; setProspects: React.Dispatch<React.SetStateAction<Prospect[]>>; codes: CECode[] }) {
+  /* — Répertoire des contacts — */
+  const [editing, setEditing] = useState<Prospect | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<Partial<Prospect>>({});
+  const [saved, setSaved] = useState(false);
+
+  /* — Envoi du catalogue — */
   const [sending, setSending] = useState<string | null>(null);
   const [sent, setSent] = useState<string[]>([]);
   const [sendAll, setSendAll] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
 
-  const activeCEs = ceCodes.filter((ce) => ce.actif);
+  /* Contacts ayant un code CE actif → ce sont eux qui reçoivent le prospectus */
+  const activeContacts = prospects
+    .map((p) => ({ prospect: p, ce: codes.find((c) => c.prospectId === p.id && c.actif) }))
+    .filter((x): x is { prospect: Prospect; ce: CECode } => !!x.ce);
+
+  function openNew() {
+    setEditing(null);
+    setForm({});
+    setShowForm(true);
+  }
+
+  function openEdit(p: Prospect) {
+    setEditing(p);
+    setForm({ ...p });
+    setShowForm(true);
+  }
+
+  function saveProspect(e: React.FormEvent) {
+    e.preventDefault();
+    if (editing) {
+      setProspects((list) => list.map((p) => p.id === editing.id
+        ? { ...p, societe: form.societe ?? p.societe, contact: form.contact ?? p.contact, email: form.email ?? p.email }
+        : p));
+    } else {
+      const newProspect: Prospect = {
+        id: Date.now().toString(),
+        societe: form.societe ?? '',
+        contact: form.contact ?? '',
+        email: form.email ?? '',
+        dateAjout: new Date().toISOString().split('T')[0],
+      };
+      setProspects((list) => [newProspect, ...list]);
+    }
+    setShowForm(false);
+    setEditing(null);
+    setForm({});
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  }
+
+  function deleteProspect(p: Prospect) {
+    const linked = codes.filter((c) => c.prospectId === p.id);
+    const message = linked.length > 0
+      ? `Ce contact est lié à ${linked.length} code${linked.length > 1 ? 's' : ''} CE (${linked.map((c) => c.code).join(', ')}). Le supprimer quand même ?`
+      : 'Supprimer ce contact ?';
+    if (confirm(message)) setProspects((list) => list.filter((x) => x.id !== p.id));
+  }
 
   function simulateSend(id: string) {
     setSending(id);
@@ -608,27 +728,82 @@ function TabProspectus({ ceCodes }: { ceCodes: CECode[] }) {
     setSendAll(true);
     setTimeout(() => {
       setSendAll(false);
-      setSent(activeCEs.map((ce) => ce.id));
+      setSent(activeContacts.map((x) => x.prospect.id));
     }, 2000);
   }
 
   const currentQuarter = `T${Math.ceil((new Date().getMonth() + 1) / 3)} ${new Date().getFullYear()}`;
 
   return (
-    <div>
+    <div className="space-y-10">
+      {/* ── Répertoire des contacts entreprise ── */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-gray-800">Contacts entreprises</h2>
+            <p className="text-gray-500 text-sm">Ajoutez, modifiez ou supprimez les entreprises à prospecter. Les codes CE se créent ensuite dans l&apos;onglet <strong>Codes CE</strong>.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Enregistré !</span>}
+            <button onClick={openNew} className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2">
+              <Plus className="w-4 h-4" /> Nouveau contact
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {prospects.map((p) => {
+            const ce = codes.find((c) => c.prospectId === p.id);
+            return (
+              <div key={p.id} className="bg-white rounded-2xl border-2 border-gray-100 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-gray-800 truncate">{p.societe}</div>
+                    <div className="text-gray-500 text-sm truncate">{p.contact} · {p.email}</div>
+                    <div className="mt-2">
+                      {ce ? (
+                        <span className={`text-xs font-mono px-2 py-0.5 rounded-full ${ce.actif ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {ce.code} · {ce.actif ? 'actif' : 'inactif'}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Pas encore de code CE</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Modifier">
+                      <Pencil className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+                    <button onClick={() => deleteProspect(p)} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {prospects.length === 0 && (
+          <div className="text-center py-8 text-gray-400">Aucun contact pour le moment.</div>
+        )}
+      </div>
+
+      {/* ── Envoi du catalogue trimestriel ── */}
+      <div>
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-lg font-bold text-gray-800">Prospectus trimestriels</h2>
-          <p className="text-gray-500 text-sm">Envoi du catalogue {currentQuarter} aux responsables CE.</p>
+          <p className="text-gray-500 text-sm">Envoi du catalogue {currentQuarter} aux contacts ayant un code CE actif.</p>
         </div>
         <button
           onClick={simulateSendAll}
-          disabled={sendAll || sent.length === activeCEs.length}
+          disabled={sendAll || activeContacts.length === 0 || sent.length === activeContacts.length}
           className="bg-[#3D2B1F] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#8B4513] transition-all flex items-center gap-2 disabled:opacity-50"
         >
           {sendAll ? (
             <><span className="animate-spin">⏳</span> Envoi en cours...</>
-          ) : sent.length === activeCEs.length ? (
+          ) : activeContacts.length > 0 && sent.length === activeContacts.length ? (
             <><CheckCircle className="w-4 h-4 text-green-300" /> Tous envoyés</>
           ) : (
             <><Send className="w-4 h-4" /> Envoyer à tous les CE</>
@@ -675,19 +850,19 @@ function TabProspectus({ ceCodes }: { ceCodes: CECode[] }) {
         )}
       </div>
 
-      {/* Liste des CE */}
+      {/* Liste des contacts avec un code CE actif */}
       <div className="space-y-3">
-        {activeCEs.map((ce) => {
-          const isSent = sent.includes(ce.id);
-          const isLoading = sending === ce.id;
-          const isOpen = open === ce.id;
-          const prenom = ce.contact.split(' ')[0];
+        {activeContacts.map(({ prospect, ce }) => {
+          const isSent = sent.includes(prospect.id);
+          const isLoading = sending === prospect.id;
+          const isOpen = open === prospect.id;
+          const prenom = prospect.contact.split(' ')[0];
           return (
-            <div key={ce.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div key={prospect.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="p-4 flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-gray-800">{ce.societe}</div>
-                  <div className="text-gray-500 text-xs">{ce.contact} · {ce.email}</div>
+                  <div className="font-semibold text-gray-800">{prospect.societe}</div>
+                  <div className="text-gray-500 text-xs">{prospect.contact} · {prospect.email}</div>
                   <div className="flex gap-2 mt-1">
                     <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{ce.code}</span>
                     <span className="text-xs text-gray-400">{ce.abonnes} abonnés</span>
@@ -696,14 +871,14 @@ function TabProspectus({ ceCodes }: { ceCodes: CECode[] }) {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setOpen(isOpen ? null : ce.id)}
+                    onClick={() => setOpen(isOpen ? null : prospect.id)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-all bg-gray-50 text-gray-600 hover:bg-gray-100"
                   >
                     <Eye className="w-3.5 h-3.5" />
                     {isOpen ? 'Masquer' : "Voir l'email"}
                   </button>
                   <button
-                    onClick={() => simulateSend(ce.id)}
+                    onClick={() => simulateSend(prospect.id)}
                     disabled={isSent || isLoading}
                     className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSent ? 'bg-green-50 text-green-600 cursor-default' : isLoading ? 'bg-gray-100 text-gray-400' : 'bg-[#F5E6D3] text-[#8B4513] hover:bg-[#8B4513] hover:text-white'}`}
                   >
@@ -720,7 +895,7 @@ function TabProspectus({ ceCodes }: { ceCodes: CECode[] }) {
               {isOpen && (
                 <div className="border-t border-gray-50 bg-[#FFF8F0] px-4 py-4 text-sm text-[#3D2B1F] space-y-2">
                   <div className="text-xs font-semibold text-[#A0856B] mb-2">
-                    Aperçu de l&apos;email envoyé à {ce.email}
+                    Aperçu de l&apos;email envoyé à {prospect.email}
                   </div>
                   <div className="text-xs text-gray-400 font-medium">Objet : Votre catalogue Louvat Box — {currentQuarter}</div>
                   <div className="border border-[#F5E6D3] rounded-lg p-3 bg-white space-y-2">
@@ -730,7 +905,7 @@ function TabProspectus({ ceCodes }: { ceCodes: CECode[] }) {
                     <p>Ce code donne accès à :</p>
                     <ul className="list-disc ml-4 space-y-1">
                       <li>10% offerts par Louvat</li>
-                      <li><strong>{ce.employerPct}%</strong> pris en charge par {ce.societe}</li>
+                      <li><strong>{ce.employerPct}%</strong> pris en charge par {prospect.societe}</li>
                     </ul>
                     <p>Lien de commande : <span className="text-[#8B4513] underline">https://box.louvat-biscuits.fr/abonnement?code={ce.code}</span></p>
                     <p>À bientôt,<br /><strong>L&apos;équipe Louvat</strong></p>
@@ -742,8 +917,39 @@ function TabProspectus({ ceCodes }: { ceCodes: CECode[] }) {
         })}
       </div>
 
-      {activeCEs.length === 0 && (
-        <div className="text-center py-8 text-gray-400">Aucun CE actif pour le moment.</div>
+      {activeContacts.length === 0 && (
+        <div className="text-center py-8 text-gray-400">Aucun contact avec un code CE actif pour le moment.</div>
+      )}
+      </div>
+
+      {/* Modal nouveau / édition contact */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-gray-800 text-lg">{editing ? 'Modifier le contact' : 'Nouveau contact entreprise'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-xl"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={saveProspect} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Société *</label>
+                <input required value={form.societe ?? ''} onChange={(e) => setForm({ ...form, societe: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Responsable CE *</label>
+                <input required value={form.contact ?? ''} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50">Annuler</button>
+                <button type="submit" className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all">{editing ? 'Enregistrer les modifications' : 'Ajouter le contact'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
