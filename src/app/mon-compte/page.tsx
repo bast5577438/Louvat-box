@@ -41,8 +41,7 @@ export default function MonComptePage() {
   const [cancelled, setCancelled] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(SESSION_KEY);
-    if (saved) setAccountEmail(saved);
+    setAccountEmail(window.localStorage.getItem(SESSION_KEY));
     setChecking(false);
   }, []);
 
