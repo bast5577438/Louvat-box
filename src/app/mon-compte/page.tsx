@@ -6,17 +6,17 @@ import { Package, Pencil, Pause, X, ChevronRight, Truck, CheckCircle, Calendar, 
 import { biscuits } from '@/lib/data';
 
 const MOCK_SUBSCRIPTION = {
-  formule: 'Trimestriel',
+  engagement: 'Trimestriel',
   boxLabel: 'Box Gourmande',
-  prix: 19.50,
+  prix: 63.00,
   prochainPrelevement: '2026-06-15',
   prochaineLivraison: '2026-06-18',
   statut: 'actif' as 'actif' | 'pause' | 'resilie',
-  selections: [1, 2, 4, 7, 9, 3, 8, 5],
+  selections: [1, 2, 4, 7, 9, 3],
   historique: [
-    { date: '2026-03-18', statut: 'livré', prix: 19.50 },
-    { date: '2025-12-18', statut: 'livré', prix: 19.50 },
-    { date: '2025-09-18', statut: 'livré', prix: 19.50 },
+    { date: '2026-03-18', statut: 'livré', prix: 63.00 },
+    { date: '2025-12-18', statut: 'livré', prix: 63.00 },
+    { date: '2025-09-18', statut: 'livré', prix: 63.00 },
   ],
 };
 
@@ -136,7 +136,7 @@ export default function MonComptePage() {
           <p className="text-center text-sm text-[#A0856B] mt-4">
             Pas encore abonné ?{' '}
             <Link href="/abonnement" className="text-[#8B4513] font-semibold hover:underline">
-              Découvrir nos formules
+              Découvrir nos box
             </Link>
           </p>
         </div>
@@ -217,9 +217,9 @@ export default function MonComptePage() {
             {/* Statut */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[
-                { icon: <Package className="w-5 h-5" />, label: 'Formule', val: MOCK_SUBSCRIPTION.formule },
+                { icon: <Package className="w-5 h-5" />, label: 'Engagement', val: MOCK_SUBSCRIPTION.engagement },
                 { icon: <Truck className="w-5 h-5" />, label: 'Prochaine livraison', val: new Date(MOCK_SUBSCRIPTION.prochaineLivraison).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) },
-                { icon: <Calendar className="w-5 h-5" />, label: 'Prochain prélèvement', val: `${MOCK_SUBSCRIPTION.prix.toFixed(2)}€ le ${new Date(MOCK_SUBSCRIPTION.prochainPrelevement).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` },
+                { icon: <Calendar className="w-5 h-5" />, label: 'Prochain prélèvement', val: `${MOCK_SUBSCRIPTION.prix.toFixed(2)}€ HT le ${new Date(MOCK_SUBSCRIPTION.prochainPrelevement).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` },
               ].map((card) => (
                 <div key={card.label} className="bg-white rounded-2xl p-5 border border-[#F5E6D3] shadow-sm">
                   <div className="flex items-center gap-2 text-[#8B4513] mb-2">{card.icon}<span className="text-xs uppercase tracking-wider font-semibold">{card.label}</span></div>
@@ -355,7 +355,7 @@ export default function MonComptePage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-[#3D2B1F]">{h.prix.toFixed(2)}€</div>
+                    <div className="font-bold text-[#3D2B1F]">{h.prix.toFixed(2)}€ HT</div>
                     <div className="text-xs text-green-600">Prélevé</div>
                   </div>
                 </div>

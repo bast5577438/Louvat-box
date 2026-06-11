@@ -55,3 +55,7 @@ GUIDE_GERANTE.pdf
 GUIDE_DEPLOIEMENT.md
 GUIDE_DEPLOIEMENT.pdf
 scripts/
+
+# Dossiers temporaires de travail (rendu PDF, etc.) - jamais sur GitHub
+tmp_pdfrender/
+.tmp-pdfrender/

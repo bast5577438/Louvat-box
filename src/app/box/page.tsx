@@ -66,13 +66,8 @@ export default function BoxPage() {
                 className={`p-5 rounded-2xl border-2 text-left transition-all ${activeSize.id === size.id ? 'border-[#8B4513] bg-[#F5E6D3]' : 'border-[#F5E6D3] bg-white hover:border-[#D2691E]'}`}
               >
                 <div className="font-bold text-[#3D2B1F] mb-1" style={{ fontFamily: 'Georgia, serif' }}>{size.label}</div>
-                <div className="text-[#8B4513] text-sm">{size.description}</div>
-                {size.priceAdd > 0 && (
-                  <div className="text-xs text-[#A0856B] mt-1">+{size.priceAdd}€/mois</div>
-                )}
-                {size.priceAdd === 0 && (
-                  <div className="text-xs text-green-700 mt-1 font-semibold">Inclus</div>
-                )}
+                <div className="text-[#8B4513] text-sm">{size.description} · {size.weight}</div>
+                <div className="text-xs text-[#A0856B] mt-1">à partir de {size.prices.annuel}€ HT/mois</div>
               </button>
             ))}
           </div>

@@ -10,11 +10,12 @@ export type Biscuit = {
   available?: boolean;
 };
 
-export type Formula = {
-  id: string;
+export type EngagementId = "sans-engagement" | "trimestriel" | "annuel";
+
+export type Engagement = {
+  id: EngagementId;
   label: string;
-  price: number;
-  pricePerMonth: number;
+  shortLabel: string;
   description: string;
   popular?: boolean;
 };
@@ -29,7 +30,7 @@ export const biscuits: Biscuit[] = [
   { id: 4,  name: "Financiers pur beurre",         description: "Moelleux aux amandes, beurre noisette, recette du Champion du Monde", category: "Moelleux",        allergens: ["gluten", "lait", "fruits à coque"], price: 5.50, available: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/DSC_1060-2_300x.jpg?v=1747385392" },
   { id: 5,  name: "Tuiles aux amandes",            description: "Fines et croquantes, amandes effilées dorées au four",                category: "Croquants",       allergens: ["gluten", "lait", "fruits à coque"], price: 5.00, available: true },
-  { id: 6,  name: "Rochers Noix de Coco",          description: "Cœur fondant, noix de coco, blanc d'œuf — sans gluten",              category: "Sans gluten",     allergens: ["œufs"],                             price: 3.90, available: true,
+  { id: 6,  name: "Rochers Noix de Coco",          description: "Cœur fondant, noix de coco, blanc d'œuf",                            category: "Meringues",       allergens: ["gluten", "œufs"],                   price: 3.90, available: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/Rocher_noix_de_coco_300x.jpg?v=1747385576" },
   { id: 7,  name: "Meringues striées",             description: "Légères et croustillantes, fondantes au cœur",                        category: "Meringues",       allergens: ["œufs"],                             price: 3.80, available: true },
   { id: 8,  name: "Meringues gouttes",             description: "Petites meringues en forme de goutte, à grignoter sans fin",          category: "Meringues",       allergens: ["œufs"],                             price: 4.00, available: true },
@@ -40,20 +41,24 @@ export const biscuits: Biscuit[] = [
     image: "https://biscuiterie-louvat.com/cdn/shop/products/DSC_2888_300x.jpg?v=1759738828" },
 ];
 
-export const formulas: Formula[] = [
+export const engagements: Engagement[] = [
   {
-    id: "mensuel",
-    label: "Mensuel",
-    price: 25,
-    pricePerMonth: 25,
-    description: "Une box livrée chaque mois. Résiliable à tout moment.",
+    id: "sans-engagement",
+    label: "Sans engagement",
+    shortLabel: "Sans engagement",
+    description: "Annulation à tout moment, sans frais.",
   },
   {
     id: "trimestriel",
-    label: "Trimestriel",
-    price: 65,
-    pricePerMonth: 21.67,
-    description: "Une box tous les 3 mois. Économisez 10% vs mensuel.",
+    label: "Engagement trimestriel",
+    shortLabel: "3 mois",
+    description: "Engagement de 3 mois, reconductible tacitement.",
+  },
+  {
+    id: "annuel",
+    label: "Engagement annuel",
+    shortLabel: "12 mois",
+    description: "Le tarif le plus avantageux, sur 12 mois.",
     popular: true,
   },
 ];
@@ -62,12 +67,36 @@ export type BoxSize = {
   id: string;
   label: string;
   items: number;
+  weight: string;
   description: string;
-  priceAdd: number;
+  prices: Record<EngagementId, number>;
+  popular?: boolean;
 };
 
 export const boxSizes: BoxSize[] = [
-  { id: "decouverte", label: "Box Découverte", items: 4, description: "4 références au choix",  priceAdd: 0  },
-  { id: "gourmande",  label: "Box Gourmande",  items: 7, description: "7 références au choix",  priceAdd: 8  },
-  { id: "prestige",   label: "Box Prestige",   items: 10, description: "10 références au choix", priceAdd: 18 },
+  {
+    id: "decouverte",
+    label: "Box Découverte",
+    items: 3,
+    weight: "1,5 kg",
+    description: "3 références au choix",
+    prices: { annuel: 30, trimestriel: 35, "sans-engagement": 40 },
+  },
+  {
+    id: "gourmande",
+    label: "Box Gourmande",
+    items: 6,
+    weight: "3 kg",
+    description: "6 références au choix",
+    prices: { annuel: 65, trimestriel: 70, "sans-engagement": 75 },
+    popular: true,
+  },
+  {
+    id: "prestige",
+    label: "Box Prestige",
+    items: 10,
+    weight: "5 kg",
+    description: "10 références au choix",
+    prices: { annuel: 100, trimestriel: 105, "sans-engagement": 110 },
+  },
 ];

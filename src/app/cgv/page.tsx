@@ -20,7 +20,7 @@ export default function CGVPage() {
             <Cookie className="w-6 h-6 text-[#F4A460]" />
             <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>Conditions Générales de Vente</h1>
           </div>
-          <p className="text-[#D2B48C] text-sm mt-2">Dernière mise à jour : mai 2026</p>
+          <p className="text-[#D2B48C] text-sm mt-2">Dernière mise à jour : juin 2026</p>
         </div>
       </div>
 
@@ -39,23 +39,23 @@ export default function CGVPage() {
         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-[#3D2B1F] mb-4 pb-2 border-b border-[#F5E6D3]">2. Description des offres</h2>
           <div className="space-y-3 text-sm leading-relaxed">
-            <p>Louvat Box propose plusieurs formules d'abonnement :</p>
+            <p>Louvat Box propose plusieurs box d&apos;abonnement :</p>
             <div className="bg-[#FAF0E6] rounded-xl p-4 space-y-2">
               <div className="flex justify-between items-center py-1 border-b border-[#F5E6D3]">
-                <span><strong>Box Découverte</strong> — 6 à 8 produits</span>
-                <span className="font-semibold text-[#8B4513]">dès 22,90 €/mois</span>
+                <span><strong>Box Découverte</strong> — 3 références, 1,5 kg de biscuits</span>
+                <span className="font-semibold text-[#8B4513]">dès 30 € HT/mois</span>
               </div>
               <div className="flex justify-between items-center py-1 border-b border-[#F5E6D3]">
-                <span><strong>Box Gourmande</strong> — 10 à 12 produits</span>
-                <span className="font-semibold text-[#8B4513]">dès 32,90 €/mois</span>
+                <span><strong>Box Gourmande</strong> — 6 références, 3 kg de biscuits</span>
+                <span className="font-semibold text-[#8B4513]">dès 65 € HT/mois</span>
               </div>
               <div className="flex justify-between items-center py-1">
-                <span><strong>Box Prestige</strong> — 15 produits + surprise</span>
-                <span className="font-semibold text-[#8B4513]">dès 45,90 €/mois</span>
+                <span><strong>Box Prestige</strong> — 10 références, 5 kg de biscuits</span>
+                <span className="font-semibold text-[#8B4513]">dès 100 € HT/mois</span>
               </div>
             </div>
             <p>
-              Les prix affichés sont en euros TTC. Louvat applique systématiquement <strong>10 % de réduction</strong> sur chaque box. Des réductions additionnelles peuvent être accordées via un code CE (Comité d'Entreprise).
+              Les prix affichés sont en euros HT (hors taxes) et varient selon le niveau d&apos;engagement choisi : <strong>sans engagement</strong>, <strong>engagement trimestriel</strong> ou <strong>engagement annuel</strong>. Plus l&apos;engagement est long, plus le tarif mensuel est avantageux. Louvat applique systématiquement <strong>10 % de réduction</strong> sur le prix de base de chaque box. Des réductions additionnelles peuvent être accordées via un code CE (Comité d&apos;Entreprise).
             </p>
           </div>
         </section>
@@ -66,9 +66,8 @@ export default function CGVPage() {
           <div className="space-y-3 text-sm leading-relaxed">
             <p>L'abonnement est souscrit directement en ligne sur le site, après avoir :</p>
             <ul className="list-disc ml-5 space-y-1">
-              <li>Sélectionné une formule de box</li>
+              <li>Choisi une box (Découverte, Gourmande ou Prestige) et un niveau d&apos;engagement (sans engagement, trimestriel ou annuel)</li>
               <li>Renseigné les informations personnelles (nom, prénom, adresse, email)</li>
-              <li>Choisi la fréquence (mensuel ou trimestriel)</li>
               <li>Saisi un code CE si applicable</li>
               <li>Accepté les présentes CGV et le mandat de prélèvement SEPA</li>
             </ul>
@@ -87,7 +86,7 @@ export default function CGVPage() {
               En cas de code CE avec participation employeur, la part employeur est déduite du montant prélevé. Seule la part salarié vous est facturée.
             </p>
             <p>
-              Le prélèvement est effectué le 1er ou le 5 de chaque mois (ou trimestre) selon votre date d'inscription.
+              Le prélèvement est effectué mensuellement, le 1er ou le 5 de chaque mois selon votre date d&apos;inscription.
             </p>
           </div>
         </section>
@@ -129,7 +128,7 @@ export default function CGVPage() {
               <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline">cib@biscuiterie-louvat.com</a>.
             </p>
             <p>
-              La résiliation prend effet à la fin de la période en cours (mensuelle ou trimestrielle). Aucun remboursement partiel n'est effectué pour la période déjà débutée.
+              Pour un abonnement <strong>sans engagement</strong>, la résiliation prend effet à la fin du mois en cours, sans frais ni justification. Pour un abonnement avec <strong>engagement trimestriel ou annuel</strong>, celui-ci ne peut être résilié avant le terme de la période d&apos;engagement souscrite ; passé ce terme, il devient résiliable à tout moment dans les mêmes conditions. Aucun remboursement partiel n&apos;est effectué pour la période déjà débutée.
             </p>
           </div>
         </section>

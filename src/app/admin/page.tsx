@@ -260,7 +260,7 @@ function TabProduits() {
     }
   }
 
-  const categories = ['Classiques', 'Moelleux', 'Croquants', 'Meringues', 'Macarons', 'Sans gluten', 'Éco-responsable'];
+  const categories = ['Classiques', 'Moelleux', 'Croquants', 'Meringues', 'Macarons', 'Éco-responsable'];
 
   return (
     <div>

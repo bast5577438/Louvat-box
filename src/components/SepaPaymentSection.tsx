@@ -24,7 +24,7 @@ type BillingDetails = {
 };
 
 type RecapInfo = {
-  formuleLabel: string;
+  engagementLabel: string;
   boxLabel: string;
   finalPrice: number;
   periodLabel: string;
@@ -44,12 +44,12 @@ function RecapBlock({ recap }: { recap: RecapInfo }) {
     <div className="bg-[#F5E6D3] rounded-2xl p-5 my-6">
       <div className="font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif de votre abonnement</div>
       <div className="space-y-1 text-sm">
-        <div className="flex justify-between"><span className="text-[#8B4513]">Formule</span><span className="font-medium text-[#3D2B1F]">{recap.formuleLabel}</span></div>
+        <div className="flex justify-between"><span className="text-[#8B4513]">Engagement</span><span className="font-medium text-[#3D2B1F]">{recap.engagementLabel}</span></div>
         <div className="flex justify-between"><span className="text-[#8B4513]">Box</span><span className="font-medium text-[#3D2B1F]">{recap.boxLabel}</span></div>
         <div className="flex justify-between"><span className="text-[#8B4513]">Livraison</span><span className="font-medium text-green-700">Gratuite</span></div>
         <div className="border-t border-[#D2B48C] pt-2 mt-2 flex justify-between font-bold text-[#3D2B1F]">
           <span>Montant prélevé</span>
-          <span className="text-[#8B4513] text-lg">{recap.finalPrice.toFixed(2)}€</span>
+          <span className="text-[#8B4513] text-lg">{recap.finalPrice.toFixed(2)}€ HT</span>
         </div>
         <div className="text-xs text-[#A0856B]">{recap.periodLabel}, à partir du {recap.startDateLabel}</div>
       </div>

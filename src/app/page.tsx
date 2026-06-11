@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { CheckCircle, Package, Star, Building2, ArrowRight, Truck } from 'lucide-react';
-import { biscuits, formulas } from '@/lib/data';
+import { biscuits, boxSizes } from '@/lib/data';
 
 export default function HomePage() {
   const featured = biscuits.slice(0, 4);
@@ -24,9 +24,23 @@ export default function HomePage() {
               <span className="text-[#F4A460]">biscuits Louvat</span><br />
               chaque mois
             </h1>
-            <p className="text-lg text-[#D2B48C] mb-8 max-w-md">
-              Sélectionnez vos biscuits préférés parmi notre gamme artisanale. Livraison mensuelle ou trimestrielle, prélèvement SEPA.
+            <p className="text-lg text-[#D2B48C] mb-6 max-w-md">
+              Sélectionnez vos biscuits préférés parmi notre gamme artisanale. Livraison mensuelle, prélèvement SEPA sans engagement, trimestriel ou annuel.
             </p>
+            <div className="flex justify-center md:justify-start mb-8">
+              <ul className="space-y-2 text-left">
+                {[
+                  'Une sélection différente chaque mois, au fil des saisons',
+                  'Livraison de septembre à juin (pause en juillet-août)',
+                  '1er mois : box + mini plateau vintage Louvat offerts',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-[#F5E6D3]">
+                    <CheckCircle className="w-4 h-4 flex-shrink-0 text-[#F4A460] mt-0.5" />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
               <Link
                 href="/abonnement"
@@ -111,7 +125,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { step: '1', icon: <Star className="w-8 h-8" />, title: 'Choisissez vos biscuits', desc: 'Parcourez le catalogue Louvat et sélectionnez vos références préférées : palets, sablés, financiers, meringues...' },
-              { step: '2', icon: <Package className="w-8 h-8" />, title: 'Choisissez votre formule', desc: 'Mensuel (25€) ou trimestriel (65€). Prélèvement SEPA automatique, résiliable à tout moment sans frais.' },
+              { step: '2', icon: <Package className="w-8 h-8" />, title: 'Choisissez votre engagement', desc: "Sans engagement, trimestriel ou annuel : plus l'engagement est long, plus le tarif mensuel est avantageux. Prélèvement SEPA automatique." },
               { step: '3', icon: <Truck className="w-8 h-8" />, title: 'Recevez votre box', desc: 'Votre box Louvat livrée à domicile, emballée avec soin depuis Saint-Geoire-en-Valdaine.' },
             ].map((item) => (
               <div key={item.step} className="text-center">
@@ -158,49 +172,59 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FORMULES */}
+      {/* NOS BOX */}
       <section className="max-w-6xl mx-auto px-4 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-[#3D2B1F]" style={{ fontFamily: 'Georgia, serif' }}>
-            Nos formules d&apos;abonnement
+            Nos box d&apos;abonnement
           </h2>
-          <p className="text-[#8B4513] mt-3">Biscuits pur beurre · Prélèvement SEPA · Résiliation à tout moment · Livraison incluse</p>
+          <p className="text-[#8B4513] mt-3">Biscuits pur beurre · Prélèvement SEPA · Sans engagement, trimestriel ou annuel · Livraison incluse</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-          {formulas.map((f) => (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {boxSizes.map((b) => (
             <div
-              key={f.id}
-              className={`rounded-2xl p-8 border-2 relative ${f.popular ? 'border-[#F4A460] bg-[#3D2B1F] text-white shadow-xl' : 'border-[#F5E6D3] bg-white shadow-sm'}`}
+              key={b.id}
+              className={`rounded-2xl p-8 border-2 relative ${b.popular ? 'border-[#F4A460] bg-[#3D2B1F] text-white shadow-xl' : 'border-[#F5E6D3] bg-white shadow-sm'}`}
             >
-              {f.popular && (
+              {b.popular && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#F4A460] text-[#3D2B1F] text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
                   ⭐ Recommandé
                 </span>
               )}
-              <h3 className="text-xl font-bold mb-1" style={{ fontFamily: 'Georgia, serif' }}>{f.label}</h3>
+              <h3 className="text-xl font-bold mb-1" style={{ fontFamily: 'Georgia, serif' }}>{b.label}</h3>
+              <p className={`text-sm mb-3 ${b.popular ? 'text-[#D2B48C]' : 'text-[#8B4513]'}`}>{b.description} · {b.weight} de biscuits</p>
               <div className="flex items-baseline gap-1 my-3">
-                <span className="text-4xl font-bold">{f.price}€</span>
-                <span className={`text-sm ${f.popular ? 'text-[#D2B48C]' : 'text-[#A0856B]'}`}>
-                  / {f.id === 'mensuel' ? 'mois' : 'trimestre'}
-                </span>
+                <span className={`text-sm ${b.popular ? 'text-[#D2B48C]' : 'text-[#A0856B]'}`}>à partir de</span>
+                <span className="text-4xl font-bold">{b.prices.annuel}€</span>
+                <span className={`text-sm ${b.popular ? 'text-[#D2B48C]' : 'text-[#A0856B]'}`}>HT/mois</span>
               </div>
-              {f.id === 'trimestriel' && (
-                <div className="text-[#F4A460] text-sm font-semibold mb-2">soit {f.pricePerMonth.toFixed(2)}€/mois</div>
-              )}
-              <p className={`text-sm mb-6 ${f.popular ? 'text-[#D2B48C]' : 'text-[#8B4513]'}`}>{f.description}</p>
+              <div className={`grid grid-cols-3 gap-1 text-center text-xs mb-6 pb-4 border-b ${b.popular ? 'border-[#5C3D2E] text-[#D2B48C]' : 'border-[#F5E6D3] text-[#A0856B]'}`}>
+                <div>
+                  <div className={`font-bold text-sm ${b.popular ? 'text-white' : 'text-[#3D2B1F]'}`}>{b.prices.annuel}€</div>
+                  <div>Annuel</div>
+                </div>
+                <div>
+                  <div className={`font-bold text-sm ${b.popular ? 'text-white' : 'text-[#3D2B1F]'}`}>{b.prices.trimestriel}€</div>
+                  <div>Trimestriel</div>
+                </div>
+                <div>
+                  <div className={`font-bold text-sm ${b.popular ? 'text-white' : 'text-[#3D2B1F]'}`}>{b.prices['sans-engagement']}€</div>
+                  <div>Sans engagt.</div>
+                </div>
+              </div>
               <ul className="space-y-2 mb-6">
-                {['Biscuits artisanaux Louvat', 'Sélection personnalisée', 'Livraison incluse', 'Résiliable sans frais'].map((item) => (
-                  <li key={item} className={`flex items-center gap-2 text-sm ${f.popular ? 'text-[#F5E6D3]' : 'text-[#3D2B1F]'}`}>
-                    <CheckCircle className={`w-4 h-4 flex-shrink-0 ${f.popular ? 'text-[#F4A460]' : 'text-green-600'}`} />
+                {['Biscuits artisanaux Louvat', 'Sélection personnalisée', 'Livraison incluse', 'Prélèvement SEPA sécurisé'].map((item) => (
+                  <li key={item} className={`flex items-center gap-2 text-sm ${b.popular ? 'text-[#F5E6D3]' : 'text-[#3D2B1F]'}`}>
+                    <CheckCircle className={`w-4 h-4 flex-shrink-0 ${b.popular ? 'text-[#F4A460]' : 'text-green-600'}`} />
                     {item}
                   </li>
                 ))}
               </ul>
               <Link
-                href={`/abonnement?formule=${f.id}`}
-                className={`block text-center py-3 rounded-full font-semibold transition-all ${f.popular ? 'bg-[#F4A460] text-[#3D2B1F] hover:bg-[#D2691E] hover:text-white' : 'bg-[#3D2B1F] text-white hover:bg-[#8B4513]'}`}
+                href={`/abonnement?taille=${b.id}`}
+                className={`block text-center py-3 rounded-full font-semibold transition-all ${b.popular ? 'bg-[#F4A460] text-[#3D2B1F] hover:bg-[#D2691E] hover:text-white' : 'bg-[#3D2B1F] text-white hover:bg-[#8B4513]'}`}
               >
-                Choisir cette formule
+                Choisir cette box
               </Link>
             </div>
           ))}

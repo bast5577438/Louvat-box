@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Building2, Users, Percent, CheckCircle, ChevronDown, ChevronUp, ArrowRight, Mail, AlertTriangle } from 'lucide-react';
 import { CONTACT_EMAIL } from '@/lib/contact';
+import { boxSizes } from '@/lib/data';
 
 const FAQ = [
   { q: 'Comment fonctionne le financement tripartite ?', a: "Le prix de la box est partagé entre trois parties : Louvat offre systématiquement 10%, l'employeur choisit un pourcentage à sa convenance (ex: 30%), et le salarié paie le solde — prélevé directement par SEPA." },
@@ -21,7 +22,7 @@ export default function CEPage() {
   const [sendError, setSendError] = useState(false);
   const [ceForm, setCeForm] = useState({ societe: '', contact: '', email: '', tel: '', effectif: '' });
 
-  const basePrice = 25;
+  const basePrice = boxSizes[0].prices.annuel;
   const louvat = basePrice * 0.1;
   const employer = basePrice * (employerPct / 100);
   const employee = Math.max(0, basePrice - louvat - employer);
@@ -172,10 +173,10 @@ export default function CEPage() {
 
             <div className="space-y-3">
               <div className="bg-[#FFF8F0] rounded-xl p-4">
-                <div className="text-xs text-[#A0856B] uppercase tracking-wider mb-1">Prix de base (Box Découverte mensuelle)</div>
+                <div className="text-xs text-[#A0856B] uppercase tracking-wider mb-1">Prix de base (Box Découverte, engagement annuel)</div>
                 <div className="flex justify-between items-center">
                   <span className="text-[#3D2B1F] font-medium">Prix catalogue</span>
-                  <span className="font-bold text-[#3D2B1F]">{basePrice.toFixed(2)}€</span>
+                  <span className="font-bold text-[#3D2B1F]">{basePrice.toFixed(2)}€ HT</span>
                 </div>
               </div>
 
@@ -202,7 +203,7 @@ export default function CEPage() {
                   <div className="font-bold text-lg" style={{ fontFamily: 'Georgia, serif' }}>Le salarié paie</div>
                   <div className="text-[#D2B48C] text-xs">Prélevé par SEPA</div>
                 </div>
-                <div className="text-3xl font-bold text-[#F4A460]">{employee.toFixed(2)}€</div>
+                <div className="text-3xl font-bold text-[#F4A460]">{employee.toFixed(2)}€ HT</div>
               </div>
 
               <div className="text-center text-xs text-[#A0856B]">

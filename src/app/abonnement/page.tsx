@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, ChevronRight, CreditCard, Package, User } from 'lucide-react';
-import { formulas, biscuits, boxSizes } from '@/lib/data';
+import { engagements, biscuits, boxSizes } from '@/lib/data';
 import SepaPaymentSection from '@/components/SepaPaymentSection';
 
 type Step = 1 | 2 | 3 | 4;
@@ -12,7 +12,7 @@ type Step = 1 | 2 | 3 | 4;
 function AbonnementContent() {
   const params = useSearchParams();
   const [step, setStep] = useState<Step>(1);
-  const [selectedFormula, setSelectedFormula] = useState(formulas[1]);
+  const [selectedEngagement, setSelectedEngagement] = useState(engagements[1]);
   const [ceCode, setCeCode] = useState('');
   const [ceValid, setCeValid] = useState<null | { employerPct: number; valid: boolean }>(null);
   const [form, setForm] = useState({ prenom: '', nom: '', email: '', tel: '', adresse: '', ville: '', cp: '' });
@@ -30,18 +30,10 @@ function AbonnementContent() {
       })
     : [];
 
-  const basePrice = selectedFormula.price + boxSize.priceAdd;
+  const basePrice = boxSize.prices[selectedEngagement.id];
   const louvat_discount = basePrice * 0.1;
   const employer_discount = ceValid?.valid ? basePrice * (ceValid.employerPct / 100) : 0;
   const finalPrice = Math.max(0, basePrice - louvat_discount - employer_discount);
-
-  const preselectedFormula = params.get('formule');
-  useEffect(() => {
-    if (preselectedFormula) {
-      const f = formulas.find((f) => f.id === preselectedFormula);
-      if (f) setSelectedFormula(f);
-    }
-  }, [preselectedFormula]);
 
   // Codes CE de démonstration (remplacés par Supabase après déploiement)
   const MOCK_CE_CODES: Record<string, number> = {
@@ -63,7 +55,7 @@ function AbonnementContent() {
   }
 
   const steps = [
-    { n: 1, label: 'Formule' },
+    { n: 1, label: 'Engagement' },
     { n: 2, label: 'Mes infos' },
     { n: 3, label: 'Paiement SEPA' },
     { n: 4, label: 'Confirmation' },
@@ -86,13 +78,13 @@ function AbonnementContent() {
           <div className="bg-white rounded-2xl p-6 border border-[#F5E6D3] mb-6 text-left">
             <div className="font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif</div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-[#8B4513]">Formule</span><span className="font-semibold">{selectedFormula.label}</span></div>
+              <div className="flex justify-between"><span className="text-[#8B4513]">Engagement</span><span className="font-semibold">{selectedEngagement.label}</span></div>
               <div className="flex justify-between"><span className="text-[#8B4513]">Box</span><span className="font-semibold">{boxSize.label}</span></div>
               <div className="flex justify-between"><span className="text-[#8B4513]">Remise Louvat</span><span className="text-green-600 font-semibold">-10%</span></div>
               {ceValid?.valid && <div className="flex justify-between"><span className="text-[#8B4513]">Remise employeur</span><span className="text-green-600 font-semibold">-{ceValid.employerPct}%</span></div>}
               <div className="border-t border-[#F5E6D3] pt-2 flex justify-between font-bold text-[#3D2B1F]">
-                <span>Total {selectedFormula.id === 'mensuel' ? '/mois' : '/trimestre'}</span>
-                <span>{finalPrice.toFixed(2)}€</span>
+                <span>Total /mois</span>
+                <span>{finalPrice.toFixed(2)}€ HT</span>
               </div>
             </div>
           </div>
@@ -108,7 +100,7 @@ function AbonnementContent() {
     <div className="bg-[#FFF8F0] min-h-screen">
       <div className="bg-[#3D2B1F] text-white py-10 text-center">
         <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'Georgia, serif' }}>Mon abonnement Louvat</h1>
-        <p className="text-[#D2B48C] text-sm">Prélèvement SEPA · Résiliable à tout moment</p>
+        <p className="text-[#D2B48C] text-sm">Prélèvement SEPA · Sans engagement, trimestriel ou annuel</p>
       </div>
 
       {/* Stepper */}
@@ -133,13 +125,13 @@ function AbonnementContent() {
         {step === 1 && (
           <div>
             <h2 className="text-xl font-bold text-[#3D2B1F] mb-6 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
-              <Package className="w-5 h-5 text-[#8B4513]" /> Choisissez votre formule
+              <Package className="w-5 h-5 text-[#8B4513]" /> Choisissez votre engagement
             </h2>
 
             {/* Récap sélection biscuits */}
             {selectedBiscuits.length > 0 && (
               <div className="bg-[#F5E6D3] rounded-xl p-4 mb-6">
-                <div className="font-semibold text-[#3D2B1F] text-sm mb-2">Votre sélection ({selectedBiscuits.length} biscuits — {boxSize.label})</div>
+                <div className="font-semibold text-[#3D2B1F] text-sm mb-2">Votre sélection ({selectedBiscuits.length} biscuits — {boxSize.label}, {boxSize.weight})</div>
                 <div className="flex flex-wrap gap-1">
                   {Array.from(new Set(selectedBiscuits.map((b) => b.name))).map((name) => (
                     <span key={name} className="bg-white text-[#8B4513] text-xs px-2 py-1 rounded-full border border-[#D2B48C]">
@@ -153,23 +145,23 @@ function AbonnementContent() {
 
             {selectedBiscuits.length === 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
-                Vous n&apos;avez pas encore sélectionné vos biscuits. <Link href="/box" className="font-semibold underline">Composer ma box →</Link>
+                Vous n&apos;avez pas encore sélectionné vos biscuits pour la {boxSize.label} ({boxSize.weight}, {boxSize.description}). <Link href="/box" className="font-semibold underline">Composer ma box →</Link>
               </div>
             )}
 
-            {/* Formules */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              {formulas.map((f) => (
+            {/* Engagement */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              {engagements.map((e) => (
                 <button
-                  key={f.id}
-                  onClick={() => setSelectedFormula(f)}
-                  className={`p-6 rounded-2xl border-2 text-left transition-all ${selectedFormula.id === f.id ? 'border-[#8B4513] bg-[#F5E6D3]' : 'border-[#F5E6D3] bg-white hover:border-[#D2B48C]'}`}
+                  key={e.id}
+                  onClick={() => setSelectedEngagement(e)}
+                  className={`p-6 rounded-2xl border-2 text-left transition-all ${selectedEngagement.id === e.id ? 'border-[#8B4513] bg-[#F5E6D3]' : 'border-[#F5E6D3] bg-white hover:border-[#D2B48C]'}`}
                 >
-                  {f.popular && <span className="text-xs font-bold text-[#F4A460] block mb-1">⭐ RECOMMANDÉ</span>}
-                  <div className="font-bold text-[#3D2B1F] text-lg mb-1" style={{ fontFamily: 'Georgia, serif' }}>{f.label}</div>
-                  <div className="text-2xl font-bold text-[#8B4513]">{f.price + boxSize.priceAdd}€</div>
-                  <div className="text-xs text-[#A0856B]">/ {f.id === 'mensuel' ? 'mois' : 'trimestre'}</div>
-                  <div className="text-xs text-[#8B4513] mt-2">{f.description}</div>
+                  {e.popular && <span className="text-xs font-bold text-[#F4A460] block mb-1">⭐ MEILLEUR PRIX</span>}
+                  <div className="font-bold text-[#3D2B1F] text-lg mb-1" style={{ fontFamily: 'Georgia, serif' }}>{e.label}</div>
+                  <div className="text-2xl font-bold text-[#8B4513]">{boxSize.prices[e.id]}€ <span className="text-sm font-normal text-[#A0856B]">HT</span></div>
+                  <div className="text-xs text-[#A0856B]">/ mois</div>
+                  <div className="text-xs text-[#8B4513] mt-2">{e.description}</div>
                 </button>
               ))}
             </div>
@@ -205,16 +197,16 @@ function AbonnementContent() {
             <div className="bg-[#3D2B1F] text-white rounded-2xl p-5 mb-6">
               <div className="font-bold mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif tarifaire</div>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-[#D2B48C]">Prix de base</span><span>{basePrice.toFixed(2)}€</span></div>
+                <div className="flex justify-between"><span className="text-[#D2B48C]">Prix de base</span><span>{basePrice.toFixed(2)}€ HT</span></div>
                 <div className="flex justify-between text-green-400"><span>Remise Louvat (10%)</span><span>-{louvat_discount.toFixed(2)}€</span></div>
                 {ceValid?.valid && (
                   <div className="flex justify-between text-green-400"><span>Remise employeur ({ceValid.employerPct}%)</span><span>-{employer_discount.toFixed(2)}€</span></div>
                 )}
                 <div className="border-t border-[#5C3D2E] pt-2 flex justify-between font-bold text-lg">
                   <span>Vous payez</span>
-                  <span className="text-[#F4A460]">{finalPrice.toFixed(2)}€</span>
+                  <span className="text-[#F4A460]">{finalPrice.toFixed(2)}€ HT</span>
                 </div>
-                <div className="text-xs text-[#A0856B]">Prélevé par SEPA · {selectedFormula.id === 'mensuel' ? 'Chaque mois' : 'Tous les 3 mois'}</div>
+                <div className="text-xs text-[#A0856B]">Prélevé par SEPA · Facturation mensuelle · {selectedEngagement.label}</div>
               </div>
             </div>
 
@@ -303,10 +295,10 @@ function AbonnementContent() {
                 },
               }}
               recap={{
-                formuleLabel: selectedFormula.label,
+                engagementLabel: selectedEngagement.label,
                 boxLabel: boxSize.label,
                 finalPrice,
-                periodLabel: selectedFormula.id === 'mensuel' ? 'Chaque mois' : 'Tous les 3 mois',
+                periodLabel: 'Chaque mois',
                 startDateLabel: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR'),
               }}
               onBack={() => setStep(2)}
