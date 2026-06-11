@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Package, Pencil, Pause, X, ChevronRight, Truck, CheckCircle, Calendar } from 'lucide-react';
+import { Package, Pencil, Pause, X, ChevronRight, Truck, CheckCircle, Calendar, LogOut, Lock, Eye, EyeOff, Info } from 'lucide-react';
 import { biscuits } from '@/lib/data';
 
 const MOCK_SUBSCRIPTION = {
@@ -20,11 +20,31 @@ const MOCK_SUBSCRIPTION = {
   ],
 };
 
+/* Clé de session locale (en attendant la vraie authentification Supabase) */
+const SESSION_KEY = 'louvat_compte_email';
+
 export default function MonComptePage() {
+  /* ── Session (provisoire, basée sur le navigateur) ── */
+  const [checking, setChecking] = useState(true);
+  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+
+  /* ── Formulaire de connexion ── */
+  const [email, setEmail] = useState('');
+  const [pwd, setPwd] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
+  /* ── État du tableau de bord ── */
   const [tab, setTab] = useState<'abonnement' | 'selection' | 'historique'>('abonnement');
   const [statut, setStatut] = useState(MOCK_SUBSCRIPTION.statut);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelled, setCancelled] = useState(false);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(SESSION_KEY);
+    if (saved) setAccountEmail(saved);
+    setChecking(false);
+  }, []);
 
   const myBiscuits = MOCK_SUBSCRIPTION.selections.map((id) => biscuits.find((b) => b.id === id)!);
 
@@ -34,6 +54,98 @@ export default function MonComptePage() {
     { id: 'historique', label: 'Historique' },
   ] as const;
 
+  function login(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || !pwd) {
+      setLoginError('Merci de renseigner votre email et votre mot de passe.');
+      return;
+    }
+    window.localStorage.setItem(SESSION_KEY, email.trim());
+    setAccountEmail(email.trim());
+    setLoginError('');
+  }
+
+  function logout() {
+    window.localStorage.removeItem(SESSION_KEY);
+    setAccountEmail(null);
+    setEmail('');
+    setPwd('');
+    setTab('abonnement');
+    setShowCancelConfirm(false);
+    setCancelled(false);
+    setStatut(MOCK_SUBSCRIPTION.statut);
+  }
+
+  /* ── Chargement initial : évite d'afficher le formulaire une fraction de seconde
+       si une session est déjà enregistrée dans ce navigateur ── */
+  if (checking) {
+    return <div className="bg-[#FFF8F0] min-h-screen" />;
+  }
+
+  /* ── Connexion ── */
+  if (!accountEmail) {
+    return (
+      <div className="bg-[#FFF8F0] min-h-screen flex items-center justify-center px-4 py-16">
+        <div className="max-w-sm w-full">
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 bg-[#3D2B1F] rounded-full flex items-center justify-center text-2xl mx-auto mb-3">🍪</div>
+            <h1 className="text-2xl font-bold text-[#3D2B1F]" style={{ fontFamily: 'Georgia, serif' }}>Mon espace Louvat</h1>
+            <p className="text-[#A0856B] text-sm mt-1">Connectez-vous pour gérer votre abonnement</p>
+          </div>
+
+          <form onSubmit={login} className="bg-white rounded-3xl border border-[#F5E6D3] shadow-sm p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="vous@exemple.fr"
+                className="w-full border border-[#F5E6D3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B4513]"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Mot de passe</label>
+              <div className="relative">
+                <input
+                  type={showPwd ? 'text' : 'password'}
+                  value={pwd}
+                  onChange={(e) => setPwd(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full border border-[#F5E6D3] rounded-xl px-4 py-2.5 text-sm pr-10 focus:outline-none focus:border-[#8B4513]"
+                />
+                <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0856B]">
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{loginError}</div>
+            )}
+
+            <button type="submit" className="w-full bg-[#3D2B1F] text-white py-3 rounded-full font-semibold hover:bg-[#8B4513] transition-all flex items-center justify-center gap-2">
+              <Lock className="w-4 h-4" /> Se connecter
+            </button>
+
+            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 text-blue-700 text-xs rounded-xl p-3">
+              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>Espace client en démonstration : saisissez l&apos;email utilisé lors de votre abonnement (et n&apos;importe quel mot de passe) pour voir un aperçu de votre espace.</span>
+            </div>
+          </form>
+
+          <p className="text-center text-sm text-[#A0856B] mt-4">
+            Pas encore abonné ?{' '}
+            <Link href="/abonnement" className="text-[#8B4513] font-semibold hover:underline">
+              Découvrir nos formules
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Résiliation confirmée ── */
   if (cancelled) {
     return (
       <div className="bg-[#FFF8F0] min-h-screen flex items-center justify-center px-4">
@@ -41,9 +153,14 @@ export default function MonComptePage() {
           <div className="text-5xl mb-4">😢</div>
           <h2 className="text-2xl font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Abonnement résilié</h2>
           <p className="text-[#8B4513] mb-6">Votre abonnement a bien été résilié. Vous pouvez vous réabonner à tout moment.</p>
-          <Link href="/abonnement" className="bg-[#8B4513] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#3D2B1F] transition-all">
-            Me réabonner
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/abonnement" className="bg-[#8B4513] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#3D2B1F] transition-all">
+              Me réabonner
+            </Link>
+            <button onClick={logout} className="border border-[#D2B48C] text-[#8B4513] px-8 py-3 rounded-full font-semibold hover:bg-[#F5E6D3] transition-all flex items-center justify-center gap-2">
+              <LogOut className="w-4 h-4" /> Déconnexion
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -58,20 +175,30 @@ export default function MonComptePage() {
             <div className="w-14 h-14 bg-[#8B4513] rounded-full flex items-center justify-center text-2xl">
               🍪
             </div>
-            <div>
-              <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>Bonjour, Marie !</h1>
-              <p className="text-[#D2B48C] text-sm">marie@exemple.fr · Abonnée depuis mars 2025</p>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>Bonjour !</h1>
+              <p className="text-[#D2B48C] text-sm truncate">{accountEmail}</p>
             </div>
-            <div className="ml-auto">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${statut === 'actif' ? 'bg-green-700 text-green-100' : statut === 'pause' ? 'bg-yellow-700 text-yellow-100' : 'bg-red-800 text-red-100'}`}>
+            <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${statut === 'actif' ? 'bg-green-700 text-green-100' : statut === 'pause' ? 'bg-yellow-700 text-yellow-100' : 'bg-red-800 text-red-100'}`}>
                 {statut === 'actif' ? '● Actif' : statut === 'pause' ? '⏸ En pause' : '✕ Résilié'}
               </span>
+              <button onClick={logout} className="flex items-center gap-1.5 text-[#D2B48C] hover:text-white text-sm transition-colors" title="Se déconnecter">
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Déconnexion</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Bandeau démonstration */}
+        <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-xl p-4 mb-6">
+          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <span>Aperçu de démonstration : les informations ci-dessous sont des données d&apos;exemple. Une fois la base de données connectée, chaque client retrouvera ici son véritable abonnement.</span>
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-2 mb-8 border-b border-[#F5E6D3]">
           {tabs.map((t) => (
