@@ -38,8 +38,8 @@ export default function MentionsLegalesPage() {
             <p><strong>Siège social :</strong> 452 Route de Chartreuse, 38620 Saint-Geoire-en-Valdaine, Isère</p>
             <p><strong>Téléphone :</strong> <a href="tel:+33476075116" className="text-[#8B4513] hover:underline">04 76 07 51 16</a></p>
             <p><strong>Email :</strong>{' '}
-              <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline">
-                contact@louvat-biscuits.fr
+              <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline">
+                cib@biscuiterie-louvat.com
               </a>
             </p>
             <p><strong>Gérante :</strong> Christelle Ivangine Bogey</p>
@@ -120,8 +120,8 @@ export default function MentionsLegalesPage() {
         <div className="bg-[#F5E6D3] rounded-2xl p-5 text-sm text-[#3D2B1F]">
           <strong>Des questions ?</strong>{' '}
           Contactez-nous à{' '}
-          <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline font-medium">
-            contact@louvat-biscuits.fr
+          <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline font-medium">
+            cib@biscuiterie-louvat.com
           </a>
         </div>
       </div>

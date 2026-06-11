@@ -17,7 +17,7 @@ export default function Footer() {
           <div className="flex gap-3 mt-4">
             <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-[#F4A460] transition-colors"><Heart className="w-5 h-5" /></a>
             <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-[#F4A460] transition-colors"><Share2 className="w-5 h-5" /></a>
-            <a href="mailto:contact@louvat-biscuits.fr" className="hover:text-[#F4A460] transition-colors"><Mail className="w-5 h-5" /></a>
+            <Link href="/contact" aria-label="Contact" className="hover:text-[#F4A460] transition-colors"><Mail className="w-5 h-5" /></Link>
           </div>
         </div>
 
@@ -46,7 +46,7 @@ export default function Footer() {
           <h4 className="font-semibold text-white mb-3 text-sm uppercase tracking-wider">Contact</h4>
           <ul className="space-y-2 text-sm text-[#D2B48C]">
             <li><Link href="/mon-compte" className="hover:text-[#F4A460] transition-colors">Mon espace abonné</Link></li>
-            <li><a href="mailto:contact@louvat-biscuits.fr" className="hover:text-[#F4A460] transition-colors">contact@louvat-biscuits.fr</a></li>
+            <li><Link href="/contact" className="hover:text-[#F4A460] transition-colors">Nous contacter</Link></li>
             <li className="text-[#D2B48C]">Saint-Geoire-en-Valdaine, 38620</li>
           </ul>
         </div>

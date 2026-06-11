@@ -6,11 +6,20 @@ import {
   Lock, Package, Building2, Users, Mail,
   Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   CheckCircle, X, Eye, EyeOff, Send, LogOut,
-  ChevronDown, AlertCircle
+  ChevronDown, AlertCircle, Settings, KeyRound
 } from 'lucide-react';
 import { biscuits as defaultBiscuits, type Biscuit } from '@/lib/data';
 
-const ADMIN_PASSWORD = 'louvat1954';
+const DEFAULT_ADMIN_PASSWORD = 'louvat1954';
+const ADMIN_PASSWORD_KEY = 'louvat_admin_pwd';
+
+/* Le mot de passe peut être changé depuis l'onglet "Paramètres".
+   Il est alors mémorisé dans ce navigateur (stockage local), en
+   attendant une vraie gestion des comptes via Supabase. */
+function getAdminPassword(): string {
+  if (typeof window === 'undefined') return DEFAULT_ADMIN_PASSWORD;
+  return window.localStorage.getItem(ADMIN_PASSWORD_KEY) || DEFAULT_ADMIN_PASSWORD;
+}
 
 /* ── Types ── */
 type Prospect = {
@@ -44,27 +53,20 @@ type Subscriber = {
   dateInscription: string;
 };
 
-/* ── Données mock initiales ── */
+/* ── Données initiales ──
+ * Site livré "prêt à l'emploi" : un seul exemple de Comité d'Entreprise
+ * (code CE2024) pour démontrer le fonctionnement, aucun abonné ni chiffre
+ * d'affaires fictif. Ajoutez vos vrais prospects/codes/abonnés au fil de
+ * l'eau depuis cet espace admin. */
 const mockProspects: Prospect[] = [
   { id: '1', societe: 'TechCorp SAS', contact: 'Sophie Martin', email: 'ce@techcorp.fr', dateAjout: '2024-01-10' },
-  { id: '2', societe: 'Industrie du Futur', contact: 'Marc Dupont', email: 'marc@idf.fr', dateAjout: '2024-03-05' },
-  { id: '3', societe: 'Cabinet Notarial Renard', contact: 'Claire Renard', email: 'claire@notaire-renard.fr', dateAjout: '2024-05-20' },
 ];
 
 const mockCECodes: CECode[] = [
-  { id: '1', code: 'CE2024', prospectId: '1', employerPct: 30, abonnes: 14, dateCreation: '2024-01-15', actif: true },
-  { id: '2', code: 'BOULOT42', prospectId: '2', employerPct: 20, abonnes: 7, dateCreation: '2024-03-10', actif: true },
-  { id: '3', code: 'SAVEUR50', prospectId: '3', employerPct: 50, abonnes: 3, dateCreation: '2024-06-01', actif: false },
+  { id: '1', code: 'CE2024', prospectId: '1', employerPct: 30, abonnes: 0, dateCreation: '2024-01-15', actif: true },
 ];
 
-const mockSubscribers: Subscriber[] = [
-  { id: '1', prenom: 'Marie', nom: 'Laurent', email: 'marie.l@gmail.com', formule: 'Trimestriel', box: 'Box Gourmande', prix: 19.50, statut: 'actif', ceCode: 'CE2024', dateInscription: '2025-03-12' },
-  { id: '2', prenom: 'Thomas', nom: 'Bernard', email: 'tbernard@yahoo.fr', formule: 'Mensuel', box: 'Box Découverte', prix: 22.50, statut: 'actif', dateInscription: '2025-04-20' },
-  { id: '3', prenom: 'Julie', nom: 'Petit', email: 'julie.p@outlook.com', formule: 'Mensuel', box: 'Box Prestige', prix: 38.25, statut: 'pause', ceCode: 'CE2024', dateInscription: '2025-01-08' },
-  { id: '4', prenom: 'Luc', nom: 'Moreau', email: 'luc.moreau@sfr.fr', formule: 'Trimestriel', box: 'Box Gourmande', prix: 52.00, statut: 'actif', ceCode: 'BOULOT42', dateInscription: '2025-05-01' },
-  { id: '5', prenom: 'Emma', nom: 'Durand', email: 'emma.d@free.fr', formule: 'Mensuel', box: 'Box Découverte', prix: 25.00, statut: 'résilié', dateInscription: '2024-11-15' },
-  { id: '6', prenom: 'Paul', nom: 'Simon', email: 'paul.s@gmail.com', formule: 'Trimestriel', box: 'Box Prestige', prix: 19.50, statut: 'actif', ceCode: 'CE2024', dateInscription: '2025-02-28' },
-];
+const mockSubscribers: Subscriber[] = [];
 
 /* ══════════════════════════════════════════════
    COMPOSANT PRINCIPAL
@@ -74,7 +76,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'produits' | 'ce' | 'abonnes' | 'prospectus'>('produits');
+  const [tab, setTab] = useState<'produits' | 'ce' | 'abonnes' | 'prospectus' | 'parametres'>('produits');
 
   /* Données partagées entre les onglets CE et Prospectus
      (un code CE est toujours lié à un contact entreprise) */
@@ -88,7 +90,7 @@ export default function AdminPage() {
 
   function login(e: React.FormEvent) {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
+    if (password === getAdminPassword()) {
       sessionStorage.setItem('louvat_admin', '1');
       setLoggedIn(true);
       setError('');
@@ -190,6 +192,7 @@ export default function AdminPage() {
             { id: 'ce', label: 'Codes CE', icon: <Building2 className="w-4 h-4" /> },
             { id: 'abonnes', label: 'Abonnés', icon: <Users className="w-4 h-4" /> },
             { id: 'prospectus', label: 'Prospectus', icon: <Mail className="w-4 h-4" /> },
+            { id: 'parametres', label: 'Paramètres', icon: <Settings className="w-4 h-4" /> },
           ].map((t) => (
             <button
               key={t.id}
@@ -206,6 +209,7 @@ export default function AdminPage() {
         {tab === 'ce' && <TabCE codes={codes} setCodes={setCodes} prospects={prospects} />}
         {tab === 'abonnes' && <TabAbonnes subscribers={mockSubscribers} />}
         {tab === 'prospectus' && <TabProspectus prospects={prospects} setProspects={setProspects} codes={codes} />}
+        {tab === 'parametres' && <TabParametres />}
       </div>
     </div>
   );
@@ -951,6 +955,121 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ONGLET PARAMÈTRES
+   (changer le mot de passe d'accès à l'administration)
+══════════════════════════════════════════════ */
+function TabParametres() {
+  const [oldPwd, setOldPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [showOld, setShowOld] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+
+    if (oldPwd !== getAdminPassword()) {
+      setError('Le mot de passe actuel est incorrect.');
+      return;
+    }
+    if (newPwd.length < 6) {
+      setError('Le nouveau mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      setError('Les deux mots de passe ne correspondent pas.');
+      return;
+    }
+
+    window.localStorage.setItem(ADMIN_PASSWORD_KEY, newPwd);
+    setOldPwd('');
+    setNewPwd('');
+    setConfirmPwd('');
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
+  }
+
+  return (
+    <div className="max-w-lg">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold text-gray-800">Paramètres</h2>
+        <p className="text-gray-500 text-sm">Gérez le mot de passe d&apos;accès à l&apos;espace administration.</p>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-[#8B4513]" /> Changer le mot de passe
+        </h3>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe actuel</label>
+            <div className="relative">
+              <input
+                type={showOld ? 'text' : 'password'}
+                value={oldPwd}
+                onChange={(e) => setOldPwd(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm pr-10 focus:outline-none focus:border-[#8B4513]"
+              />
+              <button type="button" onClick={() => setShowOld(!showOld)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {showOld ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Nouveau mot de passe</label>
+            <div className="relative">
+              <input
+                type={showNew ? 'text' : 'password'}
+                value={newPwd}
+                onChange={(e) => setNewPwd(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm pr-10 focus:outline-none focus:border-[#8B4513]"
+              />
+              <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Au moins 6 caractères.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Confirmer le nouveau mot de passe</label>
+            <input
+              type={showNew ? 'text' : 'password'}
+              value={confirmPwd}
+              onChange={(e) => setConfirmPwd(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]"
+            />
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
+            </div>
+          )}
+          {success && (
+            <div className="flex items-center gap-2 text-green-600 text-sm bg-green-50 rounded-xl p-3">
+              <CheckCircle className="w-4 h-4 flex-shrink-0" /> Mot de passe mis à jour !
+            </div>
+          )}
+
+          <button type="submit" className="w-full bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all">
+            Mettre à jour le mot de passe
+          </button>
+        </form>
+      </div>
+
+      <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 text-amber-700 text-sm rounded-xl p-4 mt-4">
+        <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+        <span>Ce mot de passe est enregistré uniquement dans ce navigateur (stockage local), en attendant un vrai système de comptes (voir Étape 5 du guide). Si vous videz le cache ou changez d&apos;ordinateur, le mot de passe par défaut (<code className="font-mono">louvat1954</code>) refonctionnera tant que ce changement n&apos;y aura pas été refait.</span>
+      </div>
     </div>
   );
 }

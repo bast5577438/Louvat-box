@@ -35,7 +35,7 @@ export default function ConfidentialitePage() {
               La Biscuiterie Louvat (ci-après « Louvat ») attache une grande importance à la protection de vos données personnelles. La présente politique de confidentialité vous informe sur la façon dont nous collectons, utilisons et protégeons vos données conformément au <strong>Règlement Général sur la Protection des Données (RGPD)</strong> n°2016/679 et à la loi Informatique et Libertés.
             </p>
             <p>
-              <strong>Responsable du traitement :</strong> Biscuiterie Louvat — contact@louvat-biscuits.fr — Saint-Geoire-en-Valdaine, 38620 Isère
+              <strong>Responsable du traitement :</strong> Biscuiterie Louvat — cib@biscuiterie-louvat.com — Saint-Geoire-en-Valdaine, 38620 Isère
             </p>
           </div>
         </section>
@@ -148,8 +148,8 @@ export default function ConfidentialitePage() {
             </div>
             <p className="mt-3">
               Pour exercer vos droits, contactez-nous à{' '}
-              <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline">
-                contact@louvat-biscuits.fr
+              <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline">
+                cib@biscuiterie-louvat.com
               </a>{' '}
               avec une pièce d'identité. Nous répondrons dans un délai de <strong>30 jours</strong>.
             </p>
@@ -201,8 +201,8 @@ export default function ConfidentialitePage() {
         <div className="bg-[#F5E6D3] rounded-2xl p-5 text-sm text-[#3D2B1F]">
           <strong>Une question sur vos données ?</strong>{' '}
           Contactez notre responsable protection des données à{' '}
-          <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline font-medium">
-            contact@louvat-biscuits.fr
+          <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline font-medium">
+            cib@biscuiterie-louvat.com
           </a>
           {' '}— Réponse garantie sous 30 jours.
         </div>

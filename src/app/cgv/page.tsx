@@ -111,7 +111,7 @@ export default function CGVPage() {
             </p>
             <p>
               Pour exercer ce droit, adressez un email à{' '}
-              <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline">contact@louvat-biscuits.fr</a>{' '}
+              <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline">cib@biscuiterie-louvat.com</a>{' '}
               avec la mention « Rétractation » et vos coordonnées. Le remboursement sera effectué sous 14 jours.
             </p>
             <p className="bg-amber-50 border border-amber-100 rounded-lg p-3 text-amber-800">
@@ -126,7 +126,7 @@ export default function CGVPage() {
           <div className="space-y-3 text-sm leading-relaxed">
             <p>
               Vous pouvez résilier votre abonnement à tout moment depuis votre espace personnel ou en contactant{' '}
-              <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline">contact@louvat-biscuits.fr</a>.
+              <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline">cib@biscuiterie-louvat.com</a>.
             </p>
             <p>
               La résiliation prend effet à la fin de la période en cours (mensuelle ou trimestrielle). Aucun remboursement partiel n'est effectué pour la période déjà débutée.
@@ -140,7 +140,7 @@ export default function CGVPage() {
           <div className="space-y-2 text-sm leading-relaxed">
             <p>
               Pour toute réclamation relative à votre abonnement ou à la qualité d'un produit, contactez-nous à{' '}
-              <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline">contact@louvat-biscuits.fr</a>{' '}
+              <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline">cib@biscuiterie-louvat.com</a>{' '}
               dans un délai de 8 jours après réception.
             </p>
             <p>
@@ -161,8 +161,8 @@ export default function CGVPage() {
         <div className="bg-[#F5E6D3] rounded-2xl p-5 text-sm text-[#3D2B1F]">
           <strong>Des questions sur votre abonnement ?</strong>{' '}
           Écrivez-nous à{' '}
-          <a href="mailto:contact@louvat-biscuits.fr" className="text-[#8B4513] hover:underline font-medium">
-            contact@louvat-biscuits.fr
+          <a href="mailto:cib@biscuiterie-louvat.com" className="text-[#8B4513] hover:underline font-medium">
+            cib@biscuiterie-louvat.com
           </a>
         </div>
       </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Building2, Users, Percent, CheckCircle, ChevronDown, ChevronUp, ArrowRight, Mail } from 'lucide-react';
+import { Building2, Users, Percent, CheckCircle, ChevronDown, ChevronUp, ArrowRight, Mail, AlertTriangle } from 'lucide-react';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 const FAQ = [
   { q: 'Comment fonctionne le financement tripartite ?', a: "Le prix de la box est partagé entre trois parties : Louvat offre systématiquement 10%, l'employeur choisit un pourcentage à sa convenance (ex: 30%), et le salarié paie le solde — prélevé directement par SEPA." },
@@ -16,6 +17,8 @@ export default function CEPage() {
   const [employerPct, setEmployerPct] = useState(30);
   const [showForm, setShowForm] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const [ceForm, setCeForm] = useState({ societe: '', contact: '', email: '', tel: '', effectif: '' });
 
   const basePrice = 25;
@@ -23,9 +26,39 @@ export default function CEPage() {
   const employer = basePrice * (employerPct / 100);
   const employee = Math.max(0, basePrice - louvat - employer);
 
-  function handleSubmitCE(e: React.FormEvent) {
+  async function handleSubmitCE(e: React.FormEvent) {
     e.preventDefault();
-    setFormSubmitted(true);
+    setSending(true);
+    setSendError(false);
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: ceForm.contact,
+          email: ceForm.email,
+          phone: ceForm.tel,
+          subject: `Inscription Comité d'Entreprise — ${ceForm.societe}`,
+          message: [
+            `Nouvelle demande d'inscription Comité d'Entreprise.`,
+            '',
+            `Société : ${ceForm.societe}`,
+            `Responsable CE : ${ceForm.contact}`,
+            `Email : ${ceForm.email}`,
+            `Téléphone : ${ceForm.tel}`,
+            `Effectif : ${ceForm.effectif || 'non précisé'}`,
+            `Part employeur souhaitée : ${employerPct}%`,
+          ].join('\n'),
+        }),
+      });
+      if (!res.ok) setSendError(true);
+    } catch {
+      setSendError(true);
+    } finally {
+      setSending(false);
+      setFormSubmitted(true);
+    }
   }
 
   if (formSubmitted) {
@@ -41,6 +74,16 @@ export default function CEPage() {
           <p className="text-[#8B4513] mb-6">
             Merci {ceForm.contact} ! Notre équipe va traiter votre demande pour <strong>{ceForm.societe}</strong> dans les 48h et vous envoyer votre code CE par email à <strong>{ceForm.email}</strong>.
           </p>
+          {sendError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 flex gap-3 text-left mb-6">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+              <div>
+                Votre demande a bien été enregistrée, mais l&apos;envoi automatique de l&apos;email n&apos;a pas pu être confirmé.
+                Pour être sûr·e que nous la recevions, vous pouvez aussi nous écrire directement à{' '}
+                <a href={`mailto:${CONTACT_EMAIL}`} className="font-semibold underline">{CONTACT_EMAIL}</a>.
+              </div>
+            </div>
+          )}
           <div className="bg-[#F5E6D3] rounded-2xl p-4 text-sm text-[#8B4513]">
             <strong>Ce qui vous attend :</strong>
             <ul className="mt-2 space-y-1 text-left">
@@ -304,11 +347,11 @@ export default function CEPage() {
 
           <button
             type="submit"
-            disabled={!ceForm.societe || !ceForm.contact || !ceForm.email || !ceForm.tel}
+            disabled={sending || !ceForm.societe || !ceForm.contact || !ceForm.email || !ceForm.tel}
             className="w-full bg-[#3D2B1F] text-white py-4 rounded-full font-bold hover:bg-[#8B4513] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Mail className="w-5 h-5" />
-            Envoyer ma demande
+            {sending ? 'Envoi en cours...' : 'Envoyer ma demande'}
           </button>
           <p className="text-xs text-center text-[#A0856B]">Réponse sous 48h ouvrées · Sans engagement</p>
         </form>
