@@ -21,7 +21,7 @@ export type Engagement = {
 };
 
 export const biscuits: Biscuit[] = [
-  { id: 1,  name: "Palets pur beurre",             description: "La recette originale depuis 1954, pur beurre de qualité",              category: "Classiques",      allergens: ["gluten", "lait", "œufs"],           price: 4.50, available: true,  badge: "Bestseller",
+  { id: 1,  name: "Palets pur beurre",             description: "La recette originale depuis 1954, pur beurre de qualité",              category: "Classiques",      allergens: ["gluten", "lait", "œufs"],           price: 4.50, available: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/DSC_9253_300x.jpg?v=1748338111" },
   { id: 2,  name: "Sablés pur beurre",             description: "Fondants en bouche, fabriqués avec du beurre sélectionné",             category: "Classiques",      allergens: ["gluten", "lait"],                   price: 5.00, available: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/DSC_9253_300x.jpg?v=1748338111" },
@@ -37,8 +37,8 @@ export const biscuits: Biscuit[] = [
   { id: 9,  name: "Macarons tendres aux amandes",  description: "Recette 1954, cœur moelleux à l'amande, enrobage croquant",           category: "Macarons",        allergens: ["gluten", "fruits à coque", "œufs"], price: 5.90, available: true },
   { id: 10, name: "Macarons meringués coco 1954",  description: "La recette coco de la maison, inchangée depuis 1954",                 category: "Macarons",        allergens: ["œufs"],                             price: 3.90, available: true },
   { id: 11, name: "Palets pur beurre aux raisins", description: "Les palets classiques agrémentés de raisins dorés",                  category: "Classiques",      allergens: ["gluten", "lait", "œufs"],           price: 5.00, available: false },
-  { id: 12, name: "L'Indécent — anti-gaspi",       description: "Biscuit anti-gaspi : irrégulier, délicieux, engagé",                 category: "Éco-responsable", allergens: ["gluten", "lait"],                   price: 6.00, available: true,  badge: "Nouveau",
-    image: "https://biscuiterie-louvat.com/cdn/shop/products/DSC_2888_300x.jpg?v=1759738828" },
+  { id: 12, name: "L'Indécent — anti-gaspi",       description: "Biscuit anti-gaspi : irrégulier, délicieux, engagé",                 category: "Éco-responsable", allergens: ["gluten", "lait"],                   price: 6.00, available: true,  badge: "Bestseller",
+    image: "/biscuits/indecent.webp" },
 ];
 
 export const engagements: Engagement[] = [

@@ -76,7 +76,7 @@ export default function HomePage() {
                 </div>
                 <div className="col-span-2 rounded-2xl overflow-hidden shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="https://biscuiterie-louvat.com/cdn/shop/products/DSC_2888_300x.jpg?v=1759738828" alt="L'Indécent — anti-gaspi" className="w-full h-full object-cover" />
+                  <img src="/biscuits/indecent.webp" alt="L'Indécent — anti-gaspi" className="w-full h-full object-cover" />
                 </div>
                 <div className="rounded-2xl overflow-hidden shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
