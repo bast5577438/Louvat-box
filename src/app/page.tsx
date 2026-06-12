@@ -9,13 +9,16 @@ export default function HomePage() {
     <div className="bg-[#FBF4E9]">
 
       {/* HERO */}
-      <section className="relative overflow-hidden bg-[#3E4743] text-white">
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #F48F98 0%, transparent 60%), radial-gradient(circle at 80% 20%, #E0727C 0%, transparent 50%)' }}
+      <section className="relative overflow-hidden bg-[#3E4743] text-white min-h-[560px] flex items-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/biscuits/indecent.webp"
+          alt="L'Indécent — anti-gaspi, biscuit Bestseller Louvat"
+          className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32 flex flex-col md:flex-row items-center gap-12">
-          <div className="flex-1 text-center md:text-left">
+        <div className="absolute inset-0 bg-gradient-to-r from-[#3E4743] via-[#3E4743]/85 to-[#3E4743]/30" />
+        <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32 w-full">
+          <div className="max-w-xl text-center md:text-left">
             <span className="inline-block bg-[#F48F98] text-[#3E4743] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-widest mb-4">
               Biscuits artisanaux
             </span>
@@ -54,17 +57,6 @@ export default function HomePage() {
               >
                 Voir les biscuits
               </Link>
-            </div>
-          </div>
-
-          {/* Visual */}
-          <div className="flex-1 flex justify-center">
-            <div className="relative w-72 h-72 md:w-80 md:h-80">
-              <div className="absolute inset-0 bg-[#5C6B65] rounded-3xl rotate-6 opacity-30" />
-              <div className="absolute inset-0 rounded-3xl overflow-hidden shadow-2xl">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/biscuits/indecent.webp" alt="L'Indécent — anti-gaspi, biscuit Bestseller Louvat" className="w-full h-full object-cover" />
-              </div>
             </div>
           </div>
         </div>
