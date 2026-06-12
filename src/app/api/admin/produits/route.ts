@@ -7,6 +7,9 @@ import { getSupabaseAdminClient } from '@/lib/supabase';
  */
 const DEFAULT_ADMIN_PASSWORD = 'louvat1954';
 
+// Nombre maximum de produits simultanément disponibles dans la box.
+const MAX_PRODUITS_DISPONIBLES = 10;
+
 function isAuthorized(request: Request): boolean {
   const provided = request.headers.get('x-admin-password') ?? '';
   const expected = process.env.ADMIN_PASSWORD || DEFAULT_ADMIN_PASSWORD;
@@ -47,6 +50,25 @@ export async function POST(request: Request) {
   }
 
   const supabase = getSupabaseAdminClient();
+
+  if (available !== false) {
+    const { count, error: countError } = await supabase
+      .from('produits')
+      .select('id', { count: 'exact', head: true })
+      .eq('available', true);
+
+    if (countError) {
+      console.error('Erreur Supabase (comptage produits disponibles) :', countError);
+      return NextResponse.json({ error: 'Impossible de vérifier les produits disponibles.' }, { status: 500 });
+    }
+    if ((count ?? 0) >= MAX_PRODUITS_DISPONIBLES) {
+      return NextResponse.json(
+        { error: `Vous ne pouvez pas avoir plus de ${MAX_PRODUITS_DISPONIBLES} produits disponibles en même temps. Désactivez-en un avant d'en ajouter un nouveau.` },
+        { status: 400 }
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from('produits')
     .insert({
@@ -88,6 +110,26 @@ export async function PUT(request: Request) {
   }
 
   const supabase = getSupabaseAdminClient();
+
+  if (updates.available === true) {
+    const { count, error: countError } = await supabase
+      .from('produits')
+      .select('id', { count: 'exact', head: true })
+      .eq('available', true)
+      .neq('id', id);
+
+    if (countError) {
+      console.error('Erreur Supabase (comptage produits disponibles) :', countError);
+      return NextResponse.json({ error: 'Impossible de vérifier les produits disponibles.' }, { status: 500 });
+    }
+    if ((count ?? 0) >= MAX_PRODUITS_DISPONIBLES) {
+      return NextResponse.json(
+        { error: `Vous ne pouvez pas avoir plus de ${MAX_PRODUITS_DISPONIBLES} produits disponibles en même temps. Désactivez-en un avant d'en activer un nouveau.` },
+        { status: 400 }
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from('produits')
     .update(updates)

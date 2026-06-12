@@ -8,3 +8,9 @@
  * composants "use client".
  */
 export const CONTACT_EMAIL = 'cib@biscuiterie-louvat.com';
+
+/**
+ * Adresse qui reçoit les notifications de nouvelles commandes/abonnements
+ * créés depuis le formulaire d'abonnement (voir /api/abonnement).
+ */
+export const ORDER_EMAIL = 'commande@biscuiterie-louvat.com';

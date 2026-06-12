@@ -333,17 +333,32 @@ function TabProduits({
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
+  const [toggleError, setToggleError] = useState('');
+
+  const MAX_DISPONIBLES = 10;
+  const availableCount = produits.filter((p) => p.available !== false).length;
 
   async function toggleAvailable(b: Biscuit) {
+    const nextAvailable = !(b.available !== false);
+    if (nextAvailable && availableCount >= MAX_DISPONIBLES) {
+      setToggleError(`Vous ne pouvez pas avoir plus de ${MAX_DISPONIBLES} produits disponibles en même temps. Désactivez-en un avant d'en activer un nouveau.`);
+      return;
+    }
+    setToggleError('');
     try {
-      await fetch('/api/admin/produits', {
+      const res = await fetch('/api/admin/produits', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
-        body: JSON.stringify({ id: b.id, available: !(b.available !== false) }),
+        body: JSON.stringify({ id: b.id, available: nextAvailable }),
       });
+      const json = await res.json();
+      if (!res.ok) {
+        setToggleError(json.error || 'Erreur lors de la mise à jour.');
+        return;
+      }
       onRefresh();
     } catch {
-      // ignore, l'utilisateur peut réessayer
+      setToggleError('Erreur lors de la mise à jour. Merci de réessayer.');
     }
   }
 
@@ -356,7 +371,7 @@ function TabProduits({
 
   function openNew() {
     setEditing(null);
-    setForm({ available: true, category: 'Classiques', allergens: [] });
+    setForm({ available: availableCount < MAX_DISPONIBLES, category: 'Classiques', allergens: [] });
     setFormError('');
     setShowForm(true);
   }
@@ -414,7 +429,12 @@ function TabProduits({
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-bold text-gray-800">Produits disponibles en box</h2>
-          <p className="text-gray-500 text-sm">Activez ou désactivez les produits visibles par les abonnés.</p>
+          <p className="text-gray-500 text-sm">
+            Activez ou désactivez les produits visibles par les abonnés.{' '}
+            <span className={availableCount >= MAX_DISPONIBLES ? 'text-red-500 font-semibold' : ''}>
+              {availableCount}/{MAX_DISPONIBLES} disponibles
+            </span>
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Sauvegardé</span>}
@@ -428,6 +448,11 @@ function TabProduits({
       {error && (
         <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">
           <AlertCircle className="w-4 h-4" /> {error}
+        </div>
+      )}
+      {toggleError && (
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">
+          <AlertCircle className="w-4 h-4" /> {toggleError}
         </div>
       )}
       {!loading && !error && produits.length === 0 && (
@@ -512,9 +537,21 @@ function TabProduits({
                 <input value={form.badge ?? ''} onChange={(e) => setForm({ ...form, badge: e.target.value })} placeholder="Ex: Nouveau, Bestseller, Favori" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div className="flex items-center gap-3">
-                <input type="checkbox" id="avail" checked={form.available !== false} onChange={(e) => setForm({ ...form, available: e.target.checked })} className="accent-amber-800 w-4 h-4" />
+                <input
+                  type="checkbox"
+                  id="avail"
+                  checked={form.available !== false}
+                  disabled={form.available === false && availableCount >= MAX_DISPONIBLES}
+                  onChange={(e) => setForm({ ...form, available: e.target.checked })}
+                  className="accent-amber-800 w-4 h-4 disabled:opacity-50"
+                />
                 <label htmlFor="avail" className="text-sm text-gray-700">Disponible dans les box</label>
               </div>
+              {form.available === false && availableCount >= MAX_DISPONIBLES && (
+                <p className="text-xs text-red-500">
+                  Limite de {MAX_DISPONIBLES} produits disponibles atteinte. Désactivez-en un avant d&apos;en activer un nouveau.
+                </p>
+              )}
             </div>
             {formError && (
               <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 mt-4">
