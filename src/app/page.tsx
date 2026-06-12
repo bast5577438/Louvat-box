@@ -61,13 +61,26 @@ export default function HomePage() {
           <div className="flex-1 flex justify-center">
             <div className="relative w-72 h-72 md:w-80 md:h-80">
               <div className="absolute inset-0 bg-[#5C6B65] rounded-3xl rotate-6 opacity-30" />
-              <div className="absolute inset-0 bg-[#F3E4CD] rounded-3xl flex flex-col items-center justify-center p-6 shadow-2xl">
-                <div className="text-6xl mb-4">🍪</div>
-                <div className="text-[#3E4743] font-bold text-xl mb-3" style={{ fontFamily: 'Georgia, serif' }}>Louvat Box</div>
-                <div className="grid grid-cols-3 gap-2 mt-1">
-                  {['🍪','🧁','🍫','🥜','🌙','🎂'].map((e, i) => (
-                    <div key={i} className="bg-white rounded-xl p-2 text-center shadow-sm text-xl">{e}</div>
-                  ))}
+              <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-2 p-3 bg-[#F3E4CD] rounded-3xl shadow-2xl">
+                <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://biscuiterie-louvat.com/cdn/shop/files/DSC_9253_300x.jpg?v=1748338111" alt="Palets pur beurre" className="w-full h-full object-cover" />
+                </div>
+                <div className="rounded-2xl overflow-hidden shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://biscuiterie-louvat.com/cdn/shop/files/DSC_1060-2_300x.jpg?v=1747385392" alt="Financiers pur beurre" className="w-full h-full object-cover" />
+                </div>
+                <div className="rounded-2xl overflow-hidden shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://biscuiterie-louvat.com/cdn/shop/files/Rocher_noix_de_coco_300x.jpg?v=1747385576" alt="Rochers Noix de Coco" className="w-full h-full object-cover" />
+                </div>
+                <div className="col-span-2 rounded-2xl overflow-hidden shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://biscuiterie-louvat.com/cdn/shop/products/DSC_2888_300x.jpg?v=1759738828" alt="L'Indécent — anti-gaspi" className="w-full h-full object-cover" />
+                </div>
+                <div className="rounded-2xl overflow-hidden shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://biscuiterie-louvat.com/cdn/shop/files/DSC_9253_300x.jpg?v=1748338111" alt="Sablés pur beurre" className="w-full h-full object-cover" />
                 </div>
               </div>
             </div>
