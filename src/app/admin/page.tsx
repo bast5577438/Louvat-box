@@ -9,7 +9,7 @@ import {
   CheckCircle, X, Eye, EyeOff, Send, LogOut,
   ChevronDown, AlertCircle, Settings, KeyRound, Info
 } from 'lucide-react';
-import { biscuits as defaultBiscuits, boxSizes, type Biscuit } from '@/lib/data';
+import { boxSizes, type Biscuit } from '@/lib/data';
 import type { Abonne } from '@/lib/supabase';
 
 const DEFAULT_ADMIN_PASSWORD = 'louvat1954';
@@ -33,13 +33,15 @@ type Prospect = {
 };
 
 type CECode = {
-  id: string;
+  id: number;
   code: string;
-  prospectId: string;
-  employerPct: number;
+  societe: string;
+  contact: string | null;
+  email: string;
+  employer_pct: number;
   abonnes: number;
-  dateCreation: string;
   actif: boolean;
+  created_at?: string;
 };
 
 /* ── Données initiales ──
@@ -49,10 +51,6 @@ type CECode = {
  * l'eau depuis cet espace admin. */
 const mockProspects: Prospect[] = [
   { id: '1', societe: 'TechCorp SAS', contact: 'Sophie Martin', email: 'ce@techcorp.fr', dateAjout: '2024-01-10' },
-];
-
-const mockCECodes: CECode[] = [
-  { id: '1', code: 'CE2024', prospectId: '1', employerPct: 30, abonnes: 0, dateCreation: '2024-01-15', actif: true },
 ];
 
 /* ══════════════════════════════════════════════
@@ -67,13 +65,52 @@ export default function AdminPage() {
 
   /* Données partagées entre les onglets CE et Prospectus
      (un code CE est toujours lié à un contact entreprise) */
-  const [codes, setCodes] = useState<CECode[]>(mockCECodes);
   const [prospects, setProspects] = useState<Prospect[]>(mockProspects);
+
+  /* Codes CE (table `ce_codes` sur Supabase) */
+  const [codes, setCodes] = useState<CECode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(false);
+  const [codesError, setCodesError] = useState('');
+
+  const fetchCeCodes = useCallback(async () => {
+    setCodesLoading(true);
+    setCodesError('');
+    try {
+      const res = await fetch('/api/admin/ce-codes', { headers: { 'x-admin-password': getAdminPassword() } });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur de chargement');
+      setCodes(json.codes ?? []);
+    } catch (err) {
+      setCodesError(err instanceof Error ? err.message : 'Erreur de chargement des codes CE.');
+    } finally {
+      setCodesLoading(false);
+    }
+  }, []);
 
   /* Espaces clients (table `abonnes` sur Supabase) */
   const [abonnes, setAbonnes] = useState<Abonne[]>([]);
   const [abonnesLoading, setAbonnesLoading] = useState(false);
   const [abonnesError, setAbonnesError] = useState('');
+
+  /* Catalogue de biscuits (table `produits` sur Supabase) */
+  const [produits, setProduits] = useState<Biscuit[]>([]);
+  const [produitsLoading, setProduitsLoading] = useState(false);
+  const [produitsError, setProduitsError] = useState('');
+
+  const fetchProduits = useCallback(async () => {
+    setProduitsLoading(true);
+    setProduitsError('');
+    try {
+      const res = await fetch('/api/admin/produits', { headers: { 'x-admin-password': getAdminPassword() } });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur de chargement');
+      setProduits(json.produits ?? []);
+    } catch (err) {
+      setProduitsError(err instanceof Error ? err.message : 'Erreur de chargement des produits.');
+    } finally {
+      setProduitsLoading(false);
+    }
+  }, []);
 
   const fetchAbonnes = useCallback(async () => {
     setAbonnesLoading(true);
@@ -95,10 +132,14 @@ export default function AdminPage() {
     if (sessionStorage.getItem('louvat_admin') === '1') setLoggedIn(true);
   }, []);
 
-  /* Charger les clients une fois connecté */
+  /* Charger les clients, le catalogue et les codes CE une fois connecté */
   useEffect(() => {
-    if (loggedIn) fetchAbonnes();
-  }, [loggedIn, fetchAbonnes]);
+    if (loggedIn) {
+      fetchAbonnes();
+      fetchProduits();
+      fetchCeCodes();
+    }
+  }, [loggedIn, fetchAbonnes, fetchProduits, fetchCeCodes]);
 
   function login(e: React.FormEvent) {
     e.preventDefault();
@@ -187,7 +228,7 @@ export default function AdminPage() {
           {[
             { label: 'Abonnés actifs', val: abonnes.filter(s => s.statut === 'actif').length, color: 'text-green-700', bg: 'bg-green-50 border-green-100' },
             { label: 'Codes CE actifs', val: codes.filter(c => c.actif).length, color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100' },
-            { label: 'Produits en box', val: defaultBiscuits.filter(b => b.available !== false).length, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-100' },
+            { label: 'Produits en box', val: produits.filter(b => b.available !== false).length, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-100' },
             { label: 'CA mensuel est.', val: `${(abonnes.filter(s => s.statut === 'actif').reduce((a, s) => a + (s.prix ?? 0), 0)).toFixed(0)}€`, color: 'text-purple-700', bg: 'bg-purple-50 border-purple-100' },
           ].map((s) => (
             <div key={s.label} className={`rounded-2xl p-5 border ${s.bg}`}>
@@ -217,8 +258,25 @@ export default function AdminPage() {
         </div>
 
         {/* Contenu des onglets */}
-        {tab === 'produits' && <TabProduits />}
-        {tab === 'ce' && <TabCE codes={codes} setCodes={setCodes} prospects={prospects} />}
+        {tab === 'produits' && (
+          <TabProduits
+            produits={produits}
+            loading={produitsLoading}
+            error={produitsError}
+            onRefresh={fetchProduits}
+            getAdminPassword={getAdminPassword}
+          />
+        )}
+        {tab === 'ce' && (
+          <TabCE
+            codes={codes}
+            loading={codesLoading}
+            error={codesError}
+            onRefresh={fetchCeCodes}
+            getAdminPassword={getAdminPassword}
+            prospects={prospects}
+          />
+        )}
         {tab === 'abonnes' && (
           <TabAbonnes
             abonnes={abonnes}
@@ -238,45 +296,96 @@ export default function AdminPage() {
 /* ══════════════════════════════════════════════
    ONGLET PRODUITS
 ══════════════════════════════════════════════ */
-function TabProduits() {
-  const [produits, setProduits] = useState<Biscuit[]>(defaultBiscuits);
+function TabProduits({
+  produits,
+  loading,
+  error,
+  onRefresh,
+  getAdminPassword,
+}: {
+  produits: Biscuit[];
+  loading: boolean;
+  error: string;
+  onRefresh: () => void;
+  getAdminPassword: () => string;
+}) {
   const [editing, setEditing] = useState<Biscuit | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Partial<Biscuit>>({});
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  function toggleAvailable(id: number) {
-    setProduits((p) => p.map((b) => b.id === id ? { ...b, available: !b.available } : b));
+  async function toggleAvailable(b: Biscuit) {
+    try {
+      await fetch('/api/admin/produits', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
+        body: JSON.stringify({ id: b.id, available: !(b.available !== false) }),
+      });
+      onRefresh();
+    } catch {
+      // ignore, l'utilisateur peut réessayer
+    }
   }
 
   function openEdit(b: Biscuit) {
     setEditing(b);
     setForm({ ...b });
+    setFormError('');
     setShowForm(true);
   }
 
   function openNew() {
     setEditing(null);
     setForm({ available: true, category: 'Classiques', allergens: [] });
+    setFormError('');
     setShowForm(true);
   }
 
-  function saveForm() {
+  async function saveForm() {
     if (!form.name || !form.description || !form.price) return;
-    if (editing) {
-      setProduits((p) => p.map((b) => b.id === editing.id ? { ...b, ...form } as Biscuit : b));
-    } else {
-      const newId = Math.max(...produits.map((b) => b.id)) + 1;
-      setProduits((p) => [...p, { ...form, id: newId, allergens: form.allergens ?? [] } as Biscuit]);
+    setSaving(true);
+    setFormError('');
+    try {
+      const payload = {
+        name: form.name,
+        description: form.description,
+        category: form.category,
+        price: form.price,
+        image: form.image,
+        badge: form.badge,
+        available: form.available ?? true,
+        allergens: form.allergens ?? [],
+      };
+      const res = await fetch('/api/admin/produits', {
+        method: editing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
+        body: JSON.stringify(editing ? { id: editing.id, ...payload } : payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur lors de l’enregistrement.');
+      setShowForm(false);
+      setSaved(true);
+      onRefresh();
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   }
 
-  function deleteProduit(id: number) {
-    if (confirm('Supprimer ce produit ?')) {
-      setProduits((p) => p.filter((b) => b.id !== id));
+  async function deleteProduit(id: number) {
+    if (!confirm('Supprimer ce produit ?')) return;
+    try {
+      await fetch(`/api/admin/produits?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': getAdminPassword() },
+      });
+      onRefresh();
+    } catch {
+      // ignore, l'utilisateur peut réessayer
     }
   }
 
@@ -296,6 +405,16 @@ function TabProduits() {
           </button>
         </div>
       </div>
+
+      {loading && <p className="text-gray-400 text-sm mb-4">Chargement des produits…</p>}
+      {error && (
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">
+          <AlertCircle className="w-4 h-4" /> {error}
+        </div>
+      )}
+      {!loading && !error && produits.length === 0 && (
+        <p className="text-gray-400 text-sm mb-4">Aucun produit pour le moment. Ajoutez-en un.</p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {produits.map((b) => (
@@ -326,7 +445,7 @@ function TabProduits() {
                 </div>
               </div>
               <button
-                onClick={() => toggleAvailable(b.id)}
+                onClick={() => toggleAvailable(b)}
                 className={`mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors ${b.available !== false ? 'text-green-600' : 'text-red-400'}`}
               >
                 {b.available !== false ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
@@ -379,10 +498,15 @@ function TabProduits() {
                 <label htmlFor="avail" className="text-sm text-gray-700">Disponible dans les box</label>
               </div>
             </div>
+            {formError && (
+              <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 mt-4">
+                <AlertCircle className="w-4 h-4" /> {formError}
+              </div>
+            )}
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-all">Annuler</button>
-              <button onClick={saveForm} disabled={!form.name || !form.description || !form.price} className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all disabled:opacity-50">
-                Enregistrer
+              <button onClick={saveForm} disabled={saving || !form.name || !form.description || !form.price} className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all disabled:opacity-50">
+                {saving ? 'Enregistrement…' : 'Enregistrer'}
               </button>
             </div>
           </div>
@@ -397,61 +521,100 @@ function TabProduits() {
    (gère uniquement les codes : % et statut.
     Les contacts entreprise se gèrent dans Prospectus)
 ══════════════════════════════════════════════ */
-function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: React.Dispatch<React.SetStateAction<CECode[]>>; prospects: Prospect[] }) {
+function TabCE({
+  codes,
+  loading,
+  error,
+  onRefresh,
+  getAdminPassword,
+  prospects,
+}: {
+  codes: CECode[];
+  loading: boolean;
+  error: string;
+  onRefresh: () => void;
+  getAdminPassword: () => string;
+  prospects: Prospect[];
+}) {
   const [editing, setEditing] = useState<CECode | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState<Partial<CECode>>({ employerPct: 30 });
+  const [form, setForm] = useState<Partial<CECode>>({ employer_pct: 30 });
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  function toggleActif(id: string) {
-    setCodes((c) => c.map((ce) => ce.id === id ? { ...ce, actif: !ce.actif } : ce));
+  async function toggleActif(ce: CECode) {
+    try {
+      await fetch('/api/admin/ce-codes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
+        body: JSON.stringify({ id: ce.id, actif: !ce.actif }),
+      });
+      onRefresh();
+    } catch {
+      // ignore, l'utilisateur peut réessayer
+    }
   }
 
   function openNew() {
     setEditing(null);
-    setForm({ employerPct: 30, prospectId: prospects[0]?.id });
+    const p = prospects[0];
+    setForm({ employer_pct: 30, societe: p?.societe ?? '', contact: p?.contact ?? '', email: p?.email ?? '' });
+    setFormError('');
     setShowForm(true);
   }
 
   function openEdit(ce: CECode) {
     setEditing(ce);
     setForm({ ...ce });
+    setFormError('');
     setShowForm(true);
   }
 
-  function saveCode(e: React.FormEvent) {
+  async function saveCode(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.prospectId) return;
-    if (editing) {
-      setCodes((c) => c.map((ce) => ce.id === editing.id
-        ? {
-            ...ce,
-            code: (form.code ?? ce.code).toUpperCase(),
-            prospectId: form.prospectId ?? ce.prospectId,
-            employerPct: form.employerPct ?? ce.employerPct,
-          }
-        : ce));
-    } else {
-      const newCode: CECode = {
-        id: Date.now().toString(),
-        code: form.code?.toUpperCase() ?? '',
-        prospectId: form.prospectId,
-        employerPct: form.employerPct ?? 30,
-        abonnes: 0,
-        dateCreation: new Date().toISOString().split('T')[0],
-        actif: true,
+    if (!form.code || !form.societe || !form.email) return;
+    setSaving(true);
+    setFormError('');
+    try {
+      const payload = {
+        code: form.code,
+        societe: form.societe,
+        contact: form.contact ?? null,
+        email: form.email,
+        employer_pct: form.employer_pct ?? 30,
       };
-      setCodes((c) => [newCode, ...c]);
+      const res = await fetch('/api/admin/ce-codes', {
+        method: editing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
+        body: JSON.stringify(editing ? { id: editing.id, ...payload } : payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur lors de l’enregistrement.');
+      setShowForm(false);
+      setEditing(null);
+      setForm({ employer_pct: 30 });
+      setSaved(true);
+      onRefresh();
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ employerPct: 30 });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   }
 
-  function deleteCode(id: string) {
-    if (confirm('Supprimer ce code CE ?')) setCodes((c) => c.filter((ce) => ce.id !== id));
+  async function deleteCode(id: number) {
+    if (!confirm('Supprimer ce code CE ?')) return;
+    try {
+      await fetch(`/api/admin/ce-codes?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': getAdminPassword() },
+      });
+      onRefresh();
+    } catch {
+      // ignore, l'utilisateur peut réessayer
+    }
   }
 
   return (
@@ -459,32 +622,28 @@ function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: Reac
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-bold text-gray-800">Codes Comité d&apos;Entreprise</h2>
-          <p className="text-gray-500 text-sm">Gérez vos codes de réduction et leur répartition. Les contacts des entreprises se gèrent dans l&apos;onglet <strong>Prospectus</strong>.</p>
+          <p className="text-gray-500 text-sm">Gérez vos codes de réduction et leur répartition.</p>
         </div>
         <div className="flex items-center gap-3">
           {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Enregistré !</span>}
           <button
             onClick={openNew}
-            disabled={prospects.length === 0}
-            title={prospects.length === 0 ? 'Ajoutez d\'abord un contact dans Prospectus' : undefined}
-            className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#8B4513]"
+            className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Nouveau code CE
           </button>
         </div>
       </div>
 
-      {prospects.length === 0 && (
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 text-amber-700 text-sm rounded-xl p-4 mb-4">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" />
-          Aucun contact entreprise pour l&apos;instant. Ajoutez-en un dans l&apos;onglet <strong className="font-semibold">Prospectus</strong> avant de créer un code CE.
+      {loading && <p className="text-gray-400 text-sm mb-4">Chargement des codes CE…</p>}
+      {error && (
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">
+          <AlertCircle className="w-4 h-4" /> {error}
         </div>
       )}
 
       <div className="space-y-4">
-        {codes.map((ce) => {
-          const prospect = prospects.find((p) => p.id === ce.prospectId);
-          return (
+        {codes.map((ce) => (
             <div key={ce.id} className={`bg-white rounded-2xl border-2 p-5 transition-all ${ce.actif ? 'border-gray-100' : 'border-gray-100 opacity-60'}`}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1">
@@ -494,18 +653,12 @@ function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: Reac
                       {ce.actif ? '● Actif' : '● Inactif'}
                     </span>
                   </div>
-                  {prospect ? (
-                    <>
-                      <div className="font-semibold text-gray-800">{prospect.societe}</div>
-                      <div className="text-gray-500 text-sm">{prospect.contact} · {prospect.email}</div>
-                    </>
-                  ) : (
-                    <div className="text-red-400 text-sm italic">Contact introuvable — il a peut-être été supprimé dans Prospectus.</div>
-                  )}
+                  <div className="font-semibold text-gray-800">{ce.societe}</div>
+                  <div className="text-gray-500 text-sm">{ce.contact} · {ce.email}</div>
                   <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">Employeur : {ce.employerPct}%</span>
+                    <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full font-medium">Employeur : {ce.employer_pct}%</span>
                     <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">Louvat : 10%</span>
-                    <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">Salarié : {100 - ce.employerPct - 10}%</span>
+                    <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">Salarié : {100 - ce.employer_pct - 10}%</span>
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{ce.abonnes} abonné{ce.abonnes > 1 ? 's' : ''}</span>
                   </div>
                 </div>
@@ -513,7 +666,7 @@ function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: Reac
                   <button onClick={() => openEdit(ce)} className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-[#8B4513] transition-all" title="Modifier">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => toggleActif(ce.id)} className={`p-2 rounded-xl text-sm font-medium transition-all ${ce.actif ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`} title={ce.actif ? 'Désactiver' : 'Activer'}>
+                  <button onClick={() => toggleActif(ce)} className={`p-2 rounded-xl text-sm font-medium transition-all ${ce.actif ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`} title={ce.actif ? 'Désactiver' : 'Activer'}>
                     {ce.actif ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
                   </button>
                   <button onClick={() => deleteCode(ce.id)} className="p-2 rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Supprimer">
@@ -522,9 +675,8 @@ function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: Reac
                 </div>
               </div>
             </div>
-          );
-        })}
-        {codes.length === 0 && (
+        ))}
+        {!loading && codes.length === 0 && (
           <div className="text-center py-8 text-gray-400">Aucun code CE pour le moment.</div>
         )}
       </div>
@@ -532,19 +684,41 @@ function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: Reac
       {/* Modal nouveau / édition de code */}
       {showForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-bold text-gray-800 text-lg">{editing ? 'Modifier le code CE' : 'Nouveau code CE'}</h3>
               <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-xl"><X className="w-5 h-5" /></button>
             </div>
             <form onSubmit={saveCode} className="space-y-4">
+              {prospects.length > 0 && !editing && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Pré-remplir depuis un contact (optionnel)</label>
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      const p = prospects.find((pr) => pr.id === e.target.value);
+                      if (p) setForm({ ...form, societe: p.societe, contact: p.contact, email: p.email });
+                    }}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white"
+                  >
+                    <option value="">— Choisir un contact —</option>
+                    {prospects.map((p) => <option key={p.id} value={p.id}>{p.societe} — {p.contact}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact entreprise *</label>
-                <select required value={form.prospectId ?? ''} onChange={(e) => setForm({ ...form, prospectId: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
-                  <option value="" disabled>— Choisir un contact —</option>
-                  {prospects.map((p) => <option key={p.id} value={p.id}>{p.societe} — {p.contact}</option>)}
-                </select>
-                <p className="text-xs text-gray-400 mt-1">Le contact n&apos;existe pas encore ? Ajoutez-le dans l&apos;onglet <strong>Prospectus</strong>, puis revenez ici.</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Société *</label>
+                <input required value={form.societe ?? ''} onChange={(e) => setForm({ ...form, societe: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
+                  <input value={form.contact ?? ''} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                  <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -554,22 +728,27 @@ function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: Reac
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">% Employeur</label>
                   <div className="flex items-center gap-2">
-                    <input type="range" min={0} max={60} value={form.employerPct ?? 30} onChange={(e) => setForm({ ...form, employerPct: Number(e.target.value) })} className="flex-1 accent-amber-800" />
-                    <span className="font-bold text-[#8B4513] w-10">{form.employerPct}%</span>
+                    <input type="range" min={0} max={60} value={form.employer_pct ?? 30} onChange={(e) => setForm({ ...form, employer_pct: Number(e.target.value) })} className="flex-1 accent-amber-800" />
+                    <span className="font-bold text-[#8B4513] w-10">{form.employer_pct}%</span>
                   </div>
                 </div>
               </div>
               <div className="bg-[#F5E6D3] rounded-xl p-3 text-sm">
                 <strong className="text-[#3D2B1F]">Répartition :</strong>
                 <div className="flex gap-2 mt-1 text-xs">
-                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Employeur {form.employerPct}%</span>
+                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Employeur {form.employer_pct}%</span>
                   <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Louvat 10%</span>
-                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Salarié {100 - (form.employerPct ?? 30) - 10}%</span>
+                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Salarié {100 - (form.employer_pct ?? 30) - 10}%</span>
                 </div>
               </div>
+              {formError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3">
+                  <AlertCircle className="w-4 h-4" /> {formError}
+                </div>
+              )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50">Annuler</button>
-                <button type="submit" className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all">{editing ? 'Enregistrer les modifications' : 'Créer le code'}</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all disabled:opacity-50">{saving ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Créer le code'}</button>
               </div>
             </form>
           </div>
@@ -887,7 +1066,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
 
   /* Contacts ayant un code CE actif → ce sont eux qui reçoivent le prospectus */
   const activeContacts = prospects
-    .map((p) => ({ prospect: p, ce: codes.find((c) => c.prospectId === p.id && c.actif) }))
+    .map((p) => ({ prospect: p, ce: codes.find((c) => c.email === p.email && c.actif) }))
     .filter((x): x is { prospect: Prospect; ce: CECode } => !!x.ce);
 
   function openNew() {
@@ -926,7 +1105,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
   }
 
   function deleteProspect(p: Prospect) {
-    const linked = codes.filter((c) => c.prospectId === p.id);
+    const linked = codes.filter((c) => c.email === p.email);
     const message = linked.length > 0
       ? `Ce contact est lié à ${linked.length} code${linked.length > 1 ? 's' : ''} CE (${linked.map((c) => c.code).join(', ')}). Le supprimer quand même ?`
       : 'Supprimer ce contact ?';
@@ -970,7 +1149,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {prospects.map((p) => {
-            const ce = codes.find((c) => c.prospectId === p.id);
+            const ce = codes.find((c) => c.email === p.email);
             return (
               <div key={p.id} className="bg-white rounded-2xl border-2 border-gray-100 p-4">
                 <div className="flex items-start justify-between gap-2">
@@ -1083,7 +1262,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
                   <div className="flex gap-2 mt-1">
                     <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{ce.code}</span>
                     <span className="text-xs text-gray-400">{ce.abonnes} abonnés</span>
-                    <span className="text-xs text-[#8B4513] bg-[#F5E6D3] px-2 py-0.5 rounded">Employeur {ce.employerPct}%</span>
+                    <span className="text-xs text-[#8B4513] bg-[#F5E6D3] px-2 py-0.5 rounded">Employeur {ce.employer_pct}%</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1122,7 +1301,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
                     <p>Ce code donne accès à :</p>
                     <ul className="list-disc ml-4 space-y-1">
                       <li>10% offerts par Louvat</li>
-                      <li><strong>{ce.employerPct}%</strong> pris en charge par {prospect.societe}</li>
+                      <li><strong>{ce.employer_pct}%</strong> pris en charge par {prospect.societe}</li>
                     </ul>
                     <p>Lien de commande : <span className="text-[#8B4513] underline">https://box.louvat-biscuits.fr/abonnement?code={ce.code}</span></p>
                     <p>À bientôt,<br /><strong>L&apos;équipe Louvat</strong></p>

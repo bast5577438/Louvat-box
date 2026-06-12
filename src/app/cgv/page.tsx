@@ -55,7 +55,7 @@ export default function CGVPage() {
               </div>
             </div>
             <p>
-              Les prix affichés sont en euros HT (hors taxes) et varient selon le niveau d&apos;engagement choisi : <strong>sans engagement</strong>, <strong>engagement trimestriel</strong> ou <strong>engagement annuel</strong>. Plus l&apos;engagement est long, plus le tarif mensuel est avantageux. Louvat applique systématiquement <strong>10 % de réduction</strong> sur le prix de base de chaque box. Des réductions additionnelles peuvent être accordées via un code CE (Comité d&apos;Entreprise).
+              Les prix affichés sont en euros HT (hors taxes) et varient selon le niveau d&apos;engagement choisi : <strong>sans engagement</strong>, <strong>engagement trimestriel</strong> ou <strong>engagement annuel</strong>. Plus l&apos;engagement est long, plus le tarif mensuel est avantageux. Pour les abonnements souscrits via un <strong>code Comité d&apos;Entreprise (CE)</strong>, Louvat applique en plus une réduction systématique de <strong>10 %</strong> sur le prix de base, en complément de la prise en charge par l&apos;employeur.
             </p>
           </div>
         </section>

@@ -32,22 +32,29 @@ function AbonnementContent() {
     : [];
 
   const basePrice = boxSize.prices[selectedEngagement.id];
-  const louvat_discount = basePrice * 0.1;
+  // La remise Louvat (10%) ne s'applique qu'aux abonnements via un code CE
+  // valide : les clients "box classique" paient le tarif plein.
+  const louvat_discount = ceValid?.valid ? basePrice * 0.1 : 0;
   const employer_discount = ceValid?.valid ? basePrice * (ceValid.employerPct / 100) : 0;
   const finalPrice = Math.max(0, basePrice - louvat_discount - employer_discount);
 
-  // Codes CE de démonstration (remplacés par Supabase après déploiement)
-  const MOCK_CE_CODES: Record<string, number> = {
-    'CE2024': 30,
-  };
+  const [checkingCe, setCheckingCe] = useState(false);
 
-  function checkCeCode() {
-    const upper = ceCode.toUpperCase();
+  async function checkCeCode() {
     if (ceCode.length === 0) return;
-    if (MOCK_CE_CODES[upper] !== undefined) {
-      setCeValid({ employerPct: MOCK_CE_CODES[upper], valid: true });
-    } else {
+    setCheckingCe(true);
+    try {
+      const res = await fetch(`/api/ce-codes/check?code=${encodeURIComponent(ceCode)}`);
+      const data = await res.json();
+      if (data.valid) {
+        setCeValid({ employerPct: data.employerPct ?? 0, valid: true });
+      } else {
+        setCeValid({ employerPct: 0, valid: false });
+      }
+    } catch {
       setCeValid({ employerPct: 0, valid: false });
+    } finally {
+      setCheckingCe(false);
     }
   }
 
@@ -118,7 +125,7 @@ function AbonnementContent() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-[#8B4513]">Engagement</span><span className="font-semibold">{selectedEngagement.label}</span></div>
               <div className="flex justify-between"><span className="text-[#8B4513]">Box</span><span className="font-semibold">{boxSize.label}</span></div>
-              <div className="flex justify-between"><span className="text-[#8B4513]">Remise Louvat</span><span className="text-green-600 font-semibold">-10%</span></div>
+              {ceValid?.valid && <div className="flex justify-between"><span className="text-[#8B4513]">Remise Louvat</span><span className="text-green-600 font-semibold">-10%</span></div>}
               {ceValid?.valid && <div className="flex justify-between"><span className="text-[#8B4513]">Remise employeur</span><span className="text-green-600 font-semibold">-{ceValid.employerPct}%</span></div>}
               <div className="border-t border-[#F5E6D3] pt-2 flex justify-between font-bold text-[#3D2B1F]">
                 <span>Total /mois</span>
@@ -216,18 +223,22 @@ function AbonnementContent() {
                 />
                 <button
                   onClick={checkCeCode}
-                  className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all"
+                  disabled={checkingCe || ceCode.length === 0}
+                  className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Appliquer
+                  {checkingCe ? 'Vérification…' : 'Appliquer'}
                 </button>
               </div>
               {ceValid?.valid && (
                 <div className="mt-2 text-sm text-green-700 flex items-center gap-1">
-                  <CheckCircle className="w-4 h-4" /> Code valide ! Votre employeur prend en charge {ceValid.employerPct}%.
+                  <CheckCircle className="w-4 h-4" /> Code valide ! Louvat offre 10% et votre employeur prend en charge {ceValid.employerPct}%.
                 </div>
               )}
               {ceValid !== null && !ceValid.valid && (
                 <div className="mt-2 text-sm text-red-600">Code invalide. Vérifiez avec votre CE.</div>
+              )}
+              {!ceValid && (
+                <p className="mt-2 text-xs text-[#A0856B]">Sans code CE, le tarif affiché ci-dessous est le tarif plein (box classique).</p>
               )}
             </div>
 
@@ -236,7 +247,9 @@ function AbonnementContent() {
               <div className="font-bold mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif tarifaire</div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-[#D2B48C]">Prix de base</span><span>{basePrice.toFixed(2)}€ HT</span></div>
-                <div className="flex justify-between text-green-400"><span>Remise Louvat (10%)</span><span>-{louvat_discount.toFixed(2)}€</span></div>
+                {ceValid?.valid && (
+                  <div className="flex justify-between text-green-400"><span>Remise Louvat (10%)</span><span>-{louvat_discount.toFixed(2)}€</span></div>
+                )}
                 {ceValid?.valid && (
                   <div className="flex justify-between text-green-400"><span>Remise employeur ({ceValid.employerPct}%)</span><span>-{employer_discount.toFixed(2)}€</span></div>
                 )}
