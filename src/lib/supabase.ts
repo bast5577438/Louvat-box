@@ -16,11 +16,33 @@ import { createClient } from '@supabase/supabase-js';
 const PLACEHOLDER_URL = 'https://placeholder.supabase.co';
 const PLACEHOLDER_KEY = 'placeholder-anon-key';
 
-export function getSupabaseBrowserClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || PLACEHOLDER_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || PLACEHOLDER_KEY;
+/**
+ * Selon la façon dont l'intégration Vercel ↔ Supabase a été configurée,
+ * les variables d'environnement peuvent être créées avec un préfixe
+ * personnalisé (ex: `STOCKAGE_SUPABASE_URL` au lieu de `SUPABASE_URL`).
+ * On accepte donc plusieurs noms possibles pour chaque variable.
+ */
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.NEXT_PUBLIC_STOCKAGE_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  process.env.STOCKAGE_SUPABASE_URL ||
+  PLACEHOLDER_URL;
 
-  return createClient(url, anonKey);
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_STOCKAGE_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_STOCKAGE_SUPABASE_PUBLISHABLE_KEY ||
+  PLACEHOLDER_KEY;
+
+const SUPABASE_SERVICE_ROLE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.STOCKAGE_SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.STOCKAGE_SUPABASE_SECRET_KEY ||
+  PLACEHOLDER_KEY;
+
+export function getSupabaseBrowserClient() {
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 /**
@@ -29,10 +51,7 @@ export function getSupabaseBrowserClient() {
  * cette clé ni ce client au navigateur.
  */
 export function getSupabaseAdminClient() {
-  const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || PLACEHOLDER_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || PLACEHOLDER_KEY;
-
-  return createClient(url, serviceRoleKey, {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
