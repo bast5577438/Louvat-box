@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   Lock, Package, Building2, Users, Mail,
   Plus, Pencil, Trash2, ToggleLeft, ToggleRight,
   CheckCircle, X, Eye, EyeOff, Send, LogOut,
-  ChevronDown, AlertCircle, Settings, KeyRound
+  ChevronDown, AlertCircle, Settings, KeyRound, Info
 } from 'lucide-react';
-import { biscuits as defaultBiscuits, type Biscuit } from '@/lib/data';
+import { biscuits as defaultBiscuits, boxSizes, type Biscuit } from '@/lib/data';
+import type { Abonne } from '@/lib/supabase';
 
 const DEFAULT_ADMIN_PASSWORD = 'louvat1954';
 const ADMIN_PASSWORD_KEY = 'louvat_admin_pwd';
@@ -40,19 +42,6 @@ type CECode = {
   actif: boolean;
 };
 
-type Subscriber = {
-  id: string;
-  prenom: string;
-  nom: string;
-  email: string;
-  formule: string;
-  box: string;
-  prix: number;
-  statut: 'actif' | 'pause' | 'résilié';
-  ceCode?: string;
-  dateInscription: string;
-};
-
 /* ── Données initiales ──
  * Site livré "prêt à l'emploi" : un seul exemple de Comité d'Entreprise
  * (code CE2024) pour démontrer le fonctionnement, aucun abonné ni chiffre
@@ -65,8 +54,6 @@ const mockProspects: Prospect[] = [
 const mockCECodes: CECode[] = [
   { id: '1', code: 'CE2024', prospectId: '1', employerPct: 30, abonnes: 0, dateCreation: '2024-01-15', actif: true },
 ];
-
-const mockSubscribers: Subscriber[] = [];
 
 /* ══════════════════════════════════════════════
    COMPOSANT PRINCIPAL
@@ -83,10 +70,35 @@ export default function AdminPage() {
   const [codes, setCodes] = useState<CECode[]>(mockCECodes);
   const [prospects, setProspects] = useState<Prospect[]>(mockProspects);
 
+  /* Espaces clients (table `abonnes` sur Supabase) */
+  const [abonnes, setAbonnes] = useState<Abonne[]>([]);
+  const [abonnesLoading, setAbonnesLoading] = useState(false);
+  const [abonnesError, setAbonnesError] = useState('');
+
+  const fetchAbonnes = useCallback(async () => {
+    setAbonnesLoading(true);
+    setAbonnesError('');
+    try {
+      const res = await fetch('/api/admin/abonnes', { headers: { 'x-admin-password': getAdminPassword() } });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur de chargement');
+      setAbonnes(json.abonnes ?? []);
+    } catch (err) {
+      setAbonnesError(err instanceof Error ? err.message : 'Erreur de chargement des clients.');
+    } finally {
+      setAbonnesLoading(false);
+    }
+  }, []);
+
   /* Vérifier la session */
   useEffect(() => {
     if (sessionStorage.getItem('louvat_admin') === '1') setLoggedIn(true);
   }, []);
+
+  /* Charger les clients une fois connecté */
+  useEffect(() => {
+    if (loggedIn) fetchAbonnes();
+  }, [loggedIn, fetchAbonnes]);
 
   function login(e: React.FormEvent) {
     e.preventDefault();
@@ -173,10 +185,10 @@ export default function AdminPage() {
         {/* Stats rapides */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
-            { label: 'Abonnés actifs', val: mockSubscribers.filter(s => s.statut === 'actif').length, color: 'text-green-700', bg: 'bg-green-50 border-green-100' },
+            { label: 'Abonnés actifs', val: abonnes.filter(s => s.statut === 'actif').length, color: 'text-green-700', bg: 'bg-green-50 border-green-100' },
             { label: 'Codes CE actifs', val: codes.filter(c => c.actif).length, color: 'text-blue-700', bg: 'bg-blue-50 border-blue-100' },
             { label: 'Produits en box', val: defaultBiscuits.filter(b => b.available !== false).length, color: 'text-amber-700', bg: 'bg-amber-50 border-amber-100' },
-            { label: 'CA mensuel est.', val: `${(mockSubscribers.filter(s => s.statut === 'actif').reduce((a, s) => a + s.prix, 0)).toFixed(0)}€`, color: 'text-purple-700', bg: 'bg-purple-50 border-purple-100' },
+            { label: 'CA mensuel est.', val: `${(abonnes.filter(s => s.statut === 'actif').reduce((a, s) => a + (s.prix ?? 0), 0)).toFixed(0)}€`, color: 'text-purple-700', bg: 'bg-purple-50 border-purple-100' },
           ].map((s) => (
             <div key={s.label} className={`rounded-2xl p-5 border ${s.bg}`}>
               <div className={`text-2xl font-bold ${s.color}`}>{s.val}</div>
@@ -207,7 +219,15 @@ export default function AdminPage() {
         {/* Contenu des onglets */}
         {tab === 'produits' && <TabProduits />}
         {tab === 'ce' && <TabCE codes={codes} setCodes={setCodes} prospects={prospects} />}
-        {tab === 'abonnes' && <TabAbonnes subscribers={mockSubscribers} />}
+        {tab === 'abonnes' && (
+          <TabAbonnes
+            abonnes={abonnes}
+            loading={abonnesLoading}
+            error={abonnesError}
+            onRefresh={fetchAbonnes}
+            getAdminPassword={getAdminPassword}
+          />
+        )}
         {tab === 'prospectus' && <TabProspectus prospects={prospects} setProspects={setProspects} codes={codes} />}
         {tab === 'parametres' && <TabParametres />}
       </div>
@@ -560,32 +580,113 @@ function TabCE({ codes, setCodes, prospects }: { codes: CECode[]; setCodes: Reac
 }
 
 /* ══════════════════════════════════════════════
-   ONGLET ABONNÉS
+   ONGLET ABONNÉS / CLIENTS
+   (espaces clients réels, table `abonnes` sur Supabase)
 ══════════════════════════════════════════════ */
-function TabAbonnes({ subscribers }: { subscribers: Subscriber[] }) {
+const ENGAGEMENT_LABELS: Record<string, string> = {
+  'sans-engagement': 'Sans engagement',
+  trimestriel: 'Trimestriel',
+  annuel: 'Annuel',
+};
+
+const STATUT_COLORS: Record<string, string> = {
+  actif: 'bg-green-100 text-green-700',
+  pause: 'bg-yellow-100 text-yellow-700',
+  résilié: 'bg-red-100 text-red-600',
+};
+
+type AbonneForm = Partial<Abonne>;
+
+function TabAbonnes({
+  abonnes,
+  loading,
+  error,
+  onRefresh,
+  getAdminPassword,
+}: {
+  abonnes: Abonne[];
+  loading: boolean;
+  error: string;
+  onRefresh: () => void;
+  getAdminPassword: () => string;
+}) {
   const [filter, setFilter] = useState<'tous' | 'actif' | 'pause' | 'résilié'>('tous');
   const [search, setSearch] = useState('');
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Abonne | null>(null);
+  const [form, setForm] = useState<AbonneForm>({});
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
-  const filtered = subscribers.filter((s) => {
+  const filtered = abonnes.filter((s) => {
     const matchStatus = filter === 'tous' || s.statut === filter;
-    const matchSearch = search === '' || `${s.prenom} ${s.nom} ${s.email}`.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = search === '' || `${s.prenom ?? ''} ${s.name ?? ''} ${s.email}`.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
 
-  const statusColors = {
-    'actif': 'bg-green-100 text-green-700',
-    'pause': 'bg-yellow-100 text-yellow-700',
-    'résilié': 'bg-red-100 text-red-600',
-  };
+  function openNew() {
+    setEditing(null);
+    setForm({ statut: 'actif' });
+    setFormError('');
+    setShowForm(true);
+  }
+
+  function openEdit(a: Abonne) {
+    setEditing(a);
+    setForm({ ...a });
+    setFormError('');
+    setShowForm(true);
+  }
+
+  async function saveForm(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.email) {
+      setFormError("L'email est requis.");
+      return;
+    }
+    setSaving(true);
+    setFormError('');
+    try {
+      const headers = { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() };
+      const res = await fetch('/api/admin/abonnes', {
+        method: editing ? 'PUT' : 'POST',
+        headers,
+        body: JSON.stringify(editing ? { ...form, id: editing.id } : form),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur lors de l\'enregistrement.');
+      setShowForm(false);
+      onRefresh();
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erreur lors de l\'enregistrement.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteAbonne(a: Abonne) {
+    if (!confirm(`Supprimer l'espace client de ${a.email} ? Cette action est irréversible.`)) return;
+    try {
+      const res = await fetch(`/api/admin/abonnes?id=${a.id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': getAdminPassword() },
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur lors de la suppression.');
+      onRefresh();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Erreur lors de la suppression.');
+    }
+  }
 
   return (
     <div>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
         <div>
-          <h2 className="text-lg font-bold text-gray-800">Abonnés</h2>
-          <p className="text-gray-500 text-sm">{subscribers.filter(s => s.statut === 'actif').length} actifs sur {subscribers.length} total</p>
+          <h2 className="text-lg font-bold text-gray-800">Clients / Abonnés</h2>
+          <p className="text-gray-500 text-sm">{abonnes.filter(s => s.statut === 'actif').length} actifs sur {abonnes.length} total</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {(['tous', 'actif', 'pause', 'résilié'] as const).map((f) => (
             <button
               key={f}
@@ -595,61 +696,173 @@ function TabAbonnes({ subscribers }: { subscribers: Subscriber[] }) {
               {f}
             </button>
           ))}
+          <button onClick={openNew} className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2">
+            <Plus className="w-4 h-4" /> Nouveau client
+          </button>
         </div>
       </div>
+
+      <p className="text-gray-500 text-sm mb-4">
+        Les clients créent eux-mêmes leur espace depuis <Link href="/mon-compte" className="text-[#8B4513] underline">Mon espace abonné</Link>. Utilisez cette section pour ajouter, modifier ou supprimer un espace manuellement (ex. abonnement pris par téléphone).
+      </p>
 
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Rechercher un abonné (nom, email...)"
+        placeholder="Rechercher un client (nom, email...)"
         className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm mb-4 focus:outline-none focus:border-[#8B4513]"
       />
+
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl p-4 mb-4">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 font-semibold text-gray-600">Abonné</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-600">Client</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Formule</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Prix</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">CE</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600">Statut</th>
+              <th className="text-right px-4 py-3 font-semibold text-gray-600">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((s, i) => (
-              <tr key={s.id} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-800">{s.prenom} {s.nom}</div>
-                  <div className="text-gray-400 text-xs">{s.email}</div>
-                </td>
-                <td className="px-4 py-3 hidden md:table-cell">
-                  <div className="text-gray-700">{s.formule}</div>
-                  <div className="text-gray-400 text-xs">{s.box}</div>
-                </td>
-                <td className="px-4 py-3 hidden sm:table-cell">
-                  <span className="font-bold text-[#8B4513]">{s.prix.toFixed(2)}€</span>
-                </td>
-                <td className="px-4 py-3 hidden lg:table-cell">
-                  {s.ceCode ? (
-                    <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-mono">{s.ceCode}</span>
-                  ) : (
-                    <span className="text-gray-300 text-xs">—</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs font-semibold px-2 py-1 rounded-full capitalize ${statusColors[s.statut]}`}>
-                    {s.statut}
-                  </span>
-                </td>
-              </tr>
-            ))}
+            {filtered.map((s, i) => {
+              const box = boxSizes.find((b) => b.id === s.box_id);
+              return (
+                <tr key={s.id} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-800">{s.prenom} {s.name}</div>
+                    <div className="text-gray-400 text-xs">{s.email}</div>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <div className="text-gray-700">{s.engagement ? ENGAGEMENT_LABELS[s.engagement] ?? s.engagement : '—'}</div>
+                    <div className="text-gray-400 text-xs">{box?.label ?? '—'}</div>
+                  </td>
+                  <td className="px-4 py-3 hidden sm:table-cell">
+                    <span className="font-bold text-[#8B4513]">{s.prix != null ? `${s.prix.toFixed(2)}€` : '—'}</span>
+                  </td>
+                  <td className="px-4 py-3 hidden lg:table-cell">
+                    {s.ce_code ? (
+                      <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-mono">{s.ce_code}</span>
+                    ) : (
+                      <span className="text-gray-300 text-xs">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full capitalize ${STATUT_COLORS[s.statut] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {s.statut}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => openEdit(s)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Modifier">
+                        <Pencil className="w-3.5 h-3.5 text-gray-400" />
+                      </button>
+                      <button onClick={() => deleteAbonne(s)} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Supprimer">
+                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-        {filtered.length === 0 && (
-          <div className="text-center py-8 text-gray-400">Aucun abonné trouvé.</div>
+        {!loading && filtered.length === 0 && (
+          <div className="text-center py-8 text-gray-400">Aucun client trouvé.</div>
+        )}
+        {loading && (
+          <div className="text-center py-8 text-gray-400">Chargement…</div>
         )}
       </div>
+
+      {/* Modal nouveau / édition client */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-bold text-gray-800 text-lg">{editing ? 'Modifier le client' : 'Nouveau client'}</h3>
+              <button onClick={() => setShowForm(false)} className="p-2 hover:bg-gray-100 rounded-xl"><X className="w-5 h-5" /></button>
+            </div>
+            <form onSubmit={saveForm} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+                  <input value={form.prenom ?? ''} onChange={(e) => setForm({ ...form, prenom: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                  <input value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Box</label>
+                  <select value={form.box_id ?? ''} onChange={(e) => setForm({ ...form, box_id: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                    <option value="">— Aucune —</option>
+                    {boxSizes.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Formule</label>
+                  <select value={form.engagement ?? ''} onChange={(e) => setForm({ ...form, engagement: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                    <option value="">— Aucune —</option>
+                    {Object.entries(ENGAGEMENT_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Prix (€ HT/mois)</label>
+                  <input type="number" step="0.01" value={form.prix ?? ''} onChange={(e) => setForm({ ...form, prix: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Code CE</label>
+                  <input value={form.ce_code ?? ''} onChange={(e) => setForm({ ...form, ce_code: e.target.value.toUpperCase() })} placeholder="Optionnel" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#8B4513]" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                <select value={form.statut ?? 'actif'} onChange={(e) => setForm({ ...form, statut: e.target.value as Abonne['statut'] })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                  <option value="actif">Actif</option>
+                  <option value="pause">En pause</option>
+                  <option value="résilié">Résilié</option>
+                </select>
+              </div>
+
+              {!editing && (
+                <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 text-blue-700 text-xs rounded-xl p-3">
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>Si le client crée ensuite son propre compte avec ce même email depuis &quot;Mon espace abonné&quot;, son espace sera automatiquement relié à cette fiche.</span>
+                </div>
+              )}
+
+              {formError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" /> {formError}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50">Annuler</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all disabled:opacity-50">
+                  {saving ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Créer le client'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

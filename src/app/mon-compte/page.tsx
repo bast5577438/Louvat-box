@@ -1,98 +1,193 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Package, Pencil, Pause, X, ChevronRight, Truck, CheckCircle, Calendar, LogOut, Lock, Eye, EyeOff, Info } from 'lucide-react';
-import { biscuits } from '@/lib/data';
-
-const MOCK_SUBSCRIPTION = {
-  engagement: 'Trimestriel',
-  boxLabel: 'Box Gourmande',
-  prix: 63.00,
-  prochainPrelevement: '2026-06-15',
-  prochaineLivraison: '2026-06-18',
-  statut: 'actif' as 'actif' | 'pause' | 'resilie',
-  selections: [1, 2, 4, 7, 9, 3],
-  historique: [
-    { date: '2026-03-18', statut: 'livré', prix: 63.00 },
-    { date: '2025-12-18', statut: 'livré', prix: 63.00 },
-    { date: '2025-09-18', statut: 'livré', prix: 63.00 },
-  ],
-};
-
-/* Clé de session locale (en attendant la vraie authentification Supabase) */
-const SESSION_KEY = 'louvat_compte_email';
+import { Package, Pause, X, ChevronRight, CheckCircle, LogOut, Lock, Eye, EyeOff, Info, Mail, User as UserIcon } from 'lucide-react';
+import { biscuits, boxSizes } from '@/lib/data';
+import { getSupabaseBrowserClient, type Abonne } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
 
 export default function MonComptePage() {
-  /* ── Session (provisoire, basée sur le navigateur) ── */
-  const [checking, setChecking] = useState(true);
-  const [accountEmail, setAccountEmail] = useState<string | null>(null);
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
-  /* ── Formulaire de connexion ── */
+  /* ── Session Supabase ── */
+  const [checking, setChecking] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [abonne, setAbonne] = useState<Abonne | null>(null);
+  const [loadingAbonne, setLoadingAbonne] = useState(false);
+
+  /* ── Formulaire connexion / inscription ── */
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
+  const [prenom, setPrenom] = useState('');
+  const [nom, setNom] = useState('');
   const [showPwd, setShowPwd] = useState(false);
-  const [loginError, setLoginError] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authMsg, setAuthMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   /* ── État du tableau de bord ── */
   const [tab, setTab] = useState<'abonnement' | 'selection' | 'historique'>('abonnement');
-  const [statut, setStatut] = useState(MOCK_SUBSCRIPTION.statut);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [cancelled, setCancelled] = useState(false);
 
+  /* Récupère la session au chargement + écoute les changements (login/logout) */
   useEffect(() => {
-    setAccountEmail(window.localStorage.getItem(SESSION_KEY));
-    setChecking(false);
-  }, []);
+    let mounted = true;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      setUser(data.session?.user ?? null);
+      setChecking(false);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
-  const myBiscuits = MOCK_SUBSCRIPTION.selections.map((id) => biscuits.find((b) => b.id === id)!);
-
-  const tabs = [
-    { id: 'abonnement', label: 'Mon abonnement' },
-    { id: 'selection', label: 'Mes biscuits' },
-    { id: 'historique', label: 'Historique' },
-  ] as const;
-
-  function login(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email.trim() || !pwd) {
-      setLoginError('Merci de renseigner votre email et votre mot de passe.');
+  /* Récupère l'espace abonné lié à ce compte */
+  useEffect(() => {
+    if (!user) {
+      setAbonne(null);
       return;
     }
-    window.localStorage.setItem(SESSION_KEY, email.trim());
-    setAccountEmail(email.trim());
-    setLoginError('');
+    setLoadingAbonne(true);
+    supabase
+      .from('abonnes')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setAbonne(data as Abonne | null);
+        setLoadingAbonne(false);
+      });
+  }, [user, supabase]);
+
+  const boxSize = abonne?.box_id ? boxSizes.find((b) => b.id === abonne.box_id) : undefined;
+  const myBiscuits = (abonne?.selections ?? [])
+    .map((id) => biscuits.find((b) => b.id === id))
+    .filter((b): b is typeof biscuits[number] => !!b);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthError('');
+    setAuthMsg('');
+    if (!email.trim() || !pwd) {
+      setAuthError('Merci de renseigner votre email et votre mot de passe.');
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: pwd });
+    setSubmitting(false);
+    if (error) {
+      setAuthError(error.message === 'Invalid login credentials' ? 'Email ou mot de passe incorrect.' : error.message);
+    }
   }
 
-  function logout() {
-    window.localStorage.removeItem(SESSION_KEY);
-    setAccountEmail(null);
-    setEmail('');
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
+    setAuthError('');
+    setAuthMsg('');
+    if (!email.trim() || !pwd) {
+      setAuthError('Merci de renseigner votre email et votre mot de passe.');
+      return;
+    }
+    if (pwd.length < 6) {
+      setAuthError('Le mot de passe doit contenir au moins 6 caractères.');
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password: pwd,
+      options: {
+        data: { name: `${prenom} ${nom}`.trim(), prenom, nom },
+        emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/mon-compte` : undefined,
+      },
+    });
+    setSubmitting(false);
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+    setAuthMsg('Votre compte a été créé ! Vérifiez votre boîte mail pour confirmer votre adresse, puis connectez-vous ci-dessous.');
+    setMode('login');
     setPwd('');
+  }
+
+  async function logout() {
+    await supabase.auth.signOut();
+    setAbonne(null);
     setTab('abonnement');
     setShowCancelConfirm(false);
-    setCancelled(false);
-    setStatut(MOCK_SUBSCRIPTION.statut);
   }
 
-  /* ── Chargement initial : évite d'afficher le formulaire une fraction de seconde
-       si une session est déjà enregistrée dans ce navigateur ── */
+  async function updateStatut(statut: 'actif' | 'pause' | 'résilié') {
+    if (!abonne) return;
+    const { error } = await supabase.from('abonnes').update({ statut }).eq('id', abonne.id);
+    if (!error) setAbonne({ ...abonne, statut });
+  }
+
+  /* ── Chargement initial ── */
   if (checking) {
     return <div className="bg-[#FFF8F0] min-h-screen" />;
   }
 
-  /* ── Connexion ── */
-  if (!accountEmail) {
+  /* ── Connexion / Inscription ── */
+  if (!user) {
     return (
       <div className="bg-[#FFF8F0] min-h-screen flex items-center justify-center px-4 py-16">
         <div className="max-w-sm w-full">
           <div className="text-center mb-6">
             <div className="w-14 h-14 bg-[#3D2B1F] rounded-full flex items-center justify-center text-2xl mx-auto mb-3">🍪</div>
             <h1 className="text-2xl font-bold text-[#3D2B1F]" style={{ fontFamily: 'Georgia, serif' }}>Mon espace Louvat</h1>
-            <p className="text-[#A0856B] text-sm mt-1">Connectez-vous pour gérer votre abonnement</p>
+            <p className="text-[#A0856B] text-sm mt-1">
+              {mode === 'login' ? 'Connectez-vous pour gérer votre abonnement' : 'Créez votre espace abonné'}
+            </p>
           </div>
 
-          <form onSubmit={login} className="bg-white rounded-3xl border border-[#F5E6D3] shadow-sm p-6 space-y-4">
+          {/* Onglets connexion / inscription */}
+          <div className="flex gap-2 mb-4 bg-white rounded-full border border-[#F5E6D3] p-1">
+            <button
+              onClick={() => { setMode('login'); setAuthError(''); setAuthMsg(''); }}
+              className={`flex-1 py-2 rounded-full text-sm font-semibold transition-all ${mode === 'login' ? 'bg-[#3D2B1F] text-white' : 'text-[#8B4513]'}`}
+            >
+              Se connecter
+            </button>
+            <button
+              onClick={() => { setMode('signup'); setAuthError(''); setAuthMsg(''); }}
+              className={`flex-1 py-2 rounded-full text-sm font-semibold transition-all ${mode === 'signup' ? 'bg-[#3D2B1F] text-white' : 'text-[#8B4513]'}`}
+            >
+              Créer un compte
+            </button>
+          </div>
+
+          <form onSubmit={mode === 'login' ? handleLogin : handleSignup} className="bg-white rounded-3xl border border-[#F5E6D3] shadow-sm p-6 space-y-4">
+            {mode === 'signup' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Prénom</label>
+                  <input
+                    value={prenom}
+                    onChange={(e) => setPrenom(e.target.value)}
+                    placeholder="Votre prénom"
+                    className="w-full border border-[#F5E6D3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B4513]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Nom</label>
+                  <input
+                    value={nom}
+                    onChange={(e) => setNom(e.target.value)}
+                    placeholder="Votre nom"
+                    className="w-full border border-[#F5E6D3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#8B4513]"
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Email</label>
               <input
@@ -117,20 +212,34 @@ export default function MonComptePage() {
                   {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {mode === 'signup' && <p className="text-xs text-[#A0856B] mt-1">Au moins 6 caractères.</p>}
             </div>
 
-            {loginError && (
-              <div className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{loginError}</div>
+            {authError && (
+              <div className="text-red-600 text-sm bg-red-50 rounded-xl p-3">{authError}</div>
+            )}
+            {authMsg && (
+              <div className="flex items-start gap-2 text-green-700 text-sm bg-green-50 rounded-xl p-3">
+                <CheckCircle className="w-4 h-4 flex-shrink-0 mt-0.5" /> {authMsg}
+              </div>
             )}
 
-            <button type="submit" className="w-full bg-[#3D2B1F] text-white py-3 rounded-full font-semibold hover:bg-[#8B4513] transition-all flex items-center justify-center gap-2">
-              <Lock className="w-4 h-4" /> Se connecter
+            <button type="submit" disabled={submitting} className="w-full bg-[#3D2B1F] text-white py-3 rounded-full font-semibold hover:bg-[#8B4513] transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+              {submitting ? (
+                <span className="animate-spin">⏳</span>
+              ) : mode === 'login' ? (
+                <><Lock className="w-4 h-4" /> Se connecter</>
+              ) : (
+                <><UserIcon className="w-4 h-4" /> Créer mon compte</>
+              )}
             </button>
 
-            <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 text-blue-700 text-xs rounded-xl p-3">
-              <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>Espace client en démonstration : saisissez l&apos;email utilisé lors de votre abonnement (et n&apos;importe quel mot de passe) pour voir un aperçu de votre espace.</span>
-            </div>
+            {mode === 'signup' && (
+              <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 text-blue-700 text-xs rounded-xl p-3">
+                <Mail className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>Un email de confirmation vous sera envoyé. Cliquez sur le lien qu&apos;il contient pour activer votre compte.</span>
+              </div>
+            )}
           </form>
 
           <p className="text-center text-sm text-[#A0856B] mt-4">
@@ -144,26 +253,12 @@ export default function MonComptePage() {
     );
   }
 
-  /* ── Résiliation confirmée ── */
-  if (cancelled) {
-    return (
-      <div className="bg-[#FFF8F0] min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-md text-center">
-          <div className="text-5xl mb-4">😢</div>
-          <h2 className="text-2xl font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Abonnement résilié</h2>
-          <p className="text-[#8B4513] mb-6">Votre abonnement a bien été résilié. Vous pouvez vous réabonner à tout moment.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/abonnement" className="bg-[#8B4513] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#3D2B1F] transition-all">
-              Me réabonner
-            </Link>
-            <button onClick={logout} className="border border-[#D2B48C] text-[#8B4513] px-8 py-3 rounded-full font-semibold hover:bg-[#F5E6D3] transition-all flex items-center justify-center gap-2">
-              <LogOut className="w-4 h-4" /> Déconnexion
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  /* ── Tableau de bord ── */
+  const tabs = [
+    { id: 'abonnement', label: 'Mon abonnement' },
+    { id: 'selection', label: 'Mes biscuits' },
+    { id: 'historique', label: 'Historique' },
+  ] as const;
 
   return (
     <div className="bg-[#FFF8F0] min-h-screen">
@@ -171,17 +266,19 @@ export default function MonComptePage() {
       <div className="bg-[#3D2B1F] text-white py-10">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-[#8B4513] rounded-full flex items-center justify-center text-2xl">
-              🍪
-            </div>
+            <div className="w-14 h-14 bg-[#8B4513] rounded-full flex items-center justify-center text-2xl">🍪</div>
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>Bonjour !</h1>
-              <p className="text-[#D2B48C] text-sm truncate">{accountEmail}</p>
+              <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>
+                {abonne?.prenom ? `Bonjour ${abonne.prenom} !` : 'Bonjour !'}
+              </h1>
+              <p className="text-[#D2B48C] text-sm truncate">{user.email}</p>
             </div>
             <div className="ml-auto flex items-center gap-3 flex-shrink-0">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${statut === 'actif' ? 'bg-green-700 text-green-100' : statut === 'pause' ? 'bg-yellow-700 text-yellow-100' : 'bg-red-800 text-red-100'}`}>
-                {statut === 'actif' ? '● Actif' : statut === 'pause' ? '⏸ En pause' : '✕ Résilié'}
-              </span>
+              {abonne && (
+                <span className={`px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap ${abonne.statut === 'actif' ? 'bg-green-700 text-green-100' : abonne.statut === 'pause' ? 'bg-yellow-700 text-yellow-100' : 'bg-red-800 text-red-100'}`}>
+                  {abonne.statut === 'actif' ? '● Actif' : abonne.statut === 'pause' ? '⏸ En pause' : '✕ Résilié'}
+                </span>
+              )}
               <button onClick={logout} className="flex items-center gap-1.5 text-[#D2B48C] hover:text-white text-sm transition-colors" title="Se déconnecter">
                 <LogOut className="w-4 h-4" />
                 <span className="hidden sm:inline">Déconnexion</span>
@@ -192,176 +289,180 @@ export default function MonComptePage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Bandeau démonstration */}
-        <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-xl p-4 mb-6">
-          <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>Aperçu de démonstration : les informations ci-dessous sont des données d&apos;exemple. Une fois la base de données connectée, chaque client retrouvera ici son véritable abonnement.</span>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-8 border-b border-[#F5E6D3]">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all ${tab === t.id ? 'border-[#8B4513] text-[#8B4513]' : 'border-transparent text-[#A0856B] hover:text-[#8B4513]'}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Onglet Abonnement */}
-        {tab === 'abonnement' && (
-          <div className="space-y-6">
-            {/* Statut */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { icon: <Package className="w-5 h-5" />, label: 'Engagement', val: MOCK_SUBSCRIPTION.engagement },
-                { icon: <Truck className="w-5 h-5" />, label: 'Prochaine livraison', val: new Date(MOCK_SUBSCRIPTION.prochaineLivraison).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) },
-                { icon: <Calendar className="w-5 h-5" />, label: 'Prochain prélèvement', val: `${MOCK_SUBSCRIPTION.prix.toFixed(2)}€ HT le ${new Date(MOCK_SUBSCRIPTION.prochainPrelevement).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` },
-              ].map((card) => (
-                <div key={card.label} className="bg-white rounded-2xl p-5 border border-[#F5E6D3] shadow-sm">
-                  <div className="flex items-center gap-2 text-[#8B4513] mb-2">{card.icon}<span className="text-xs uppercase tracking-wider font-semibold">{card.label}</span></div>
-                  <div className="font-bold text-[#3D2B1F]">{card.val}</div>
-                </div>
+        {loadingAbonne ? (
+          <div className="text-center py-12 text-[#A0856B]">Chargement de votre espace…</div>
+        ) : !abonne || !abonne.box_id ? (
+          /* ── Pas encore d'abonnement ── */
+          <div className="bg-white rounded-3xl border border-[#F5E6D3] p-10 text-center shadow-sm">
+            <div className="text-4xl mb-4">📦</div>
+            <h2 className="text-xl font-bold text-[#3D2B1F] mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+              Vous n&apos;avez pas encore de box en cours
+            </h2>
+            <p className="text-[#8B4513] mb-6">Composez votre première box et choisissez votre formule pour démarrer votre abonnement.</p>
+            <Link href="/box" className="inline-flex items-center gap-2 bg-[#3D2B1F] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#8B4513] transition-all">
+              Composer ma box <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        ) : (
+          <>
+            {/* Tabs */}
+            <div className="flex gap-2 mb-8 border-b border-[#F5E6D3]">
+              {tabs.map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  className={`pb-3 px-4 text-sm font-semibold border-b-2 transition-all ${tab === t.id ? 'border-[#8B4513] text-[#8B4513]' : 'border-transparent text-[#A0856B] hover:text-[#8B4513]'}`}
+                >
+                  {t.label}
+                </button>
               ))}
             </div>
 
-            {/* Actions */}
-            <div className="bg-white rounded-2xl border border-[#F5E6D3] p-6 shadow-sm">
-              <h3 className="font-bold text-[#3D2B1F] mb-4" style={{ fontFamily: 'Georgia, serif' }}>Gérer mon abonnement</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => setTab('selection')}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-[#F5E6D3] hover:bg-[#EDD5B8] transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <Pencil className="w-4 h-4 text-[#8B4513]" />
-                    <div>
-                      <div className="font-semibold text-[#3D2B1F] text-sm">Modifier ma sélection</div>
-                      <div className="text-xs text-[#A0856B]">Changer les biscuits de ma prochaine box</div>
+            {/* Onglet Abonnement */}
+            {tab === 'abonnement' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {[
+                    { icon: <Package className="w-5 h-5" />, label: 'Ma box', val: boxSize?.label ?? '—' },
+                    { icon: <Info className="w-5 h-5" />, label: 'Formule', val: abonne.engagement === 'annuel' ? 'Engagement annuel' : abonne.engagement === 'trimestriel' ? 'Engagement trimestriel' : 'Sans engagement' },
+                    { icon: <CheckCircle className="w-5 h-5" />, label: 'Tarif', val: abonne.prix ? `${abonne.prix.toFixed(2)}€ HT/mois` : '—' },
+                  ].map((card) => (
+                    <div key={card.label} className="bg-white rounded-2xl p-5 border border-[#F5E6D3] shadow-sm">
+                      <div className="flex items-center gap-2 text-[#8B4513] mb-2">{card.icon}<span className="text-xs uppercase tracking-wider font-semibold">{card.label}</span></div>
+                      <div className="font-bold text-[#3D2B1F]">{card.val}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {abonne.ce_code && (
+                  <div className="bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-xl p-4">
+                    Code Comité d&apos;Entreprise associé : <strong className="font-mono">{abonne.ce_code}</strong>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="bg-white rounded-2xl border border-[#F5E6D3] p-6 shadow-sm">
+                  <h3 className="font-bold text-[#3D2B1F] mb-4" style={{ fontFamily: 'Georgia, serif' }}>Gérer mon abonnement</h3>
+                  <div className="space-y-3">
+                    <Link
+                      href="/box"
+                      className="w-full flex items-center justify-between p-4 rounded-xl bg-[#F5E6D3] hover:bg-[#EDD5B8] transition-all text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Package className="w-4 h-4 text-[#8B4513]" />
+                        <div>
+                          <div className="font-semibold text-[#3D2B1F] text-sm">Modifier ma sélection</div>
+                          <div className="text-xs text-[#A0856B]">Changer les biscuits de ma prochaine box</div>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[#8B4513]" />
+                    </Link>
+
+                    {abonne.statut === 'actif' ? (
+                      <button
+                        onClick={() => updateStatut('pause')}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-all text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Pause className="w-4 h-4 text-yellow-700" />
+                          <div>
+                            <div className="font-semibold text-yellow-800 text-sm">Mettre en pause</div>
+                            <div className="text-xs text-yellow-600">Suspendre temporairement les livraisons</div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-yellow-700" />
+                      </button>
+                    ) : abonne.statut === 'pause' ? (
+                      <button
+                        onClick={() => updateStatut('actif')}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-green-50 border border-green-200 hover:bg-green-100 transition-all text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className="w-4 h-4 text-green-700" />
+                          <div>
+                            <div className="font-semibold text-green-800 text-sm">Reprendre l&apos;abonnement</div>
+                            <div className="text-xs text-green-600">Réactiver mes livraisons</div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-green-700" />
+                      </button>
+                    ) : null}
+
+                    {abonne.statut !== 'résilié' && (
+                      <button
+                        onClick={() => setShowCancelConfirm(true)}
+                        className="w-full flex items-center justify-between p-4 rounded-xl bg-red-50 border border-red-100 hover:bg-red-100 transition-all text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <X className="w-4 h-4 text-red-600" />
+                          <div>
+                            <div className="font-semibold text-red-700 text-sm">Résilier l&apos;abonnement</div>
+                            <div className="text-xs text-red-400">Sans frais, effectif immédiatement</div>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-red-500" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {showCancelConfirm && (
+                  <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
+                    <h4 className="font-bold text-red-800 mb-2">Confirmer la résiliation ?</h4>
+                    <p className="text-red-600 text-sm mb-4">Votre abonnement sera résilié immédiatement. Vous ne recevrez plus de box Louvat. Vous pouvez vous réabonner à tout moment.</p>
+                    <div className="flex gap-3">
+                      <button onClick={() => setShowCancelConfirm(false)} className="flex-1 border border-[#D2B48C] text-[#8B4513] py-2 rounded-full text-sm font-semibold hover:bg-[#F5E6D3] transition-all">
+                        Annuler
+                      </button>
+                      <button onClick={() => { updateStatut('résilié'); setShowCancelConfirm(false); }} className="flex-1 bg-red-600 text-white py-2 rounded-full text-sm font-bold hover:bg-red-700 transition-all">
+                        Confirmer la résiliation
+                      </button>
                     </div>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-[#8B4513]" />
-                </button>
-
-                {statut === 'actif' ? (
-                  <button
-                    onClick={() => setStatut('pause')}
-                    className="w-full flex items-center justify-between p-4 rounded-xl bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-all text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Pause className="w-4 h-4 text-yellow-700" />
-                      <div>
-                        <div className="font-semibold text-yellow-800 text-sm">Mettre en pause</div>
-                        <div className="text-xs text-yellow-600">Suspendre temporairement les livraisons</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-yellow-700" />
-                  </button>
-                ) : statut === 'pause' ? (
-                  <button
-                    onClick={() => setStatut('actif')}
-                    className="w-full flex items-center justify-between p-4 rounded-xl bg-green-50 border border-green-200 hover:bg-green-100 transition-all text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-4 h-4 text-green-700" />
-                      <div>
-                        <div className="font-semibold text-green-800 text-sm">Reprendre l&apos;abonnement</div>
-                        <div className="text-xs text-green-600">Réactiver mes livraisons</div>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-green-700" />
-                  </button>
-                ) : null}
-
-                <button
-                  onClick={() => setShowCancelConfirm(true)}
-                  className="w-full flex items-center justify-between p-4 rounded-xl bg-red-50 border border-red-100 hover:bg-red-100 transition-all text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <X className="w-4 h-4 text-red-600" />
-                    <div>
-                      <div className="font-semibold text-red-700 text-sm">Résilier l&apos;abonnement</div>
-                      <div className="text-xs text-red-400">Sans frais, effectif immédiatement</div>
-                    </div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-red-500" />
-                </button>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Confirm résiliation */}
-            {showCancelConfirm && (
-              <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6">
-                <h4 className="font-bold text-red-800 mb-2">Confirmer la résiliation ?</h4>
-                <p className="text-red-600 text-sm mb-4">Votre abonnement sera résilié immédiatement. Vous ne recevrez plus de box Louvat. Vous pouvez vous réabonner à tout moment.</p>
-                <div className="flex gap-3">
-                  <button onClick={() => setShowCancelConfirm(false)} className="flex-1 border border-[#D2B48C] text-[#8B4513] py-2 rounded-full text-sm font-semibold hover:bg-[#F5E6D3] transition-all">
-                    Annuler
-                  </button>
-                  <button onClick={() => setCancelled(true)} className="flex-1 bg-red-600 text-white py-2 rounded-full text-sm font-bold hover:bg-red-700 transition-all">
-                    Confirmer la résiliation
-                  </button>
+            {/* Onglet Sélection */}
+            {tab === 'selection' && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold text-[#3D2B1F] text-lg" style={{ fontFamily: 'Georgia, serif' }}>
+                    Ma sélection actuelle ({myBiscuits.length} biscuits)
+                  </h3>
+                  <Link href="/box" className="bg-[#8B4513] text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-[#3D2B1F] transition-all">
+                    Modifier →
+                  </Link>
+                </div>
+                {myBiscuits.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    {myBiscuits.map((b, i) => (
+                      <div key={`${b.id}-${i}`} className="bg-white rounded-2xl p-4 border border-[#F5E6D3] text-center shadow-sm">
+                        <div className="text-2xl mb-2">🍪</div>
+                        <div className="font-semibold text-[#3D2B1F] text-xs" style={{ fontFamily: 'Georgia, serif' }}>{b.name}</div>
+                        <div className="text-[#A0856B] text-xs mt-1">{b.category}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-[#A0856B] mb-6">Aucune sélection enregistrée pour le moment.</div>
+                )}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                  Les modifications s&apos;appliquent à votre prochaine box. Date limite de modification : 7 jours avant la livraison.
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Onglet Sélection */}
-        {tab === 'selection' && (
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-[#3D2B1F] text-lg" style={{ fontFamily: 'Georgia, serif' }}>
-                Ma sélection actuelle ({myBiscuits.length} biscuits)
-              </h3>
-              <Link href="/box" className="bg-[#8B4513] text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-[#3D2B1F] transition-all">
-                Modifier →
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              {myBiscuits.map((b, i) => (
-                <div key={`${b.id}-${i}`} className="bg-white rounded-2xl p-4 border border-[#F5E6D3] text-center shadow-sm">
-                  <div className="text-2xl mb-2">🍪</div>
-                  <div className="font-semibold text-[#3D2B1F] text-xs" style={{ fontFamily: 'Georgia, serif' }}>{b.name}</div>
-                  <div className="text-[#A0856B] text-xs mt-1">{b.category}</div>
+            {/* Onglet Historique */}
+            {tab === 'historique' && (
+              <div>
+                <h3 className="font-bold text-[#3D2B1F] text-lg mb-6" style={{ fontFamily: 'Georgia, serif' }}>Historique des livraisons</h3>
+                <div className="text-center py-12 text-[#A0856B]">
+                  Aucune livraison enregistrée pour le moment. Votre historique apparaîtra ici après votre première box.
                 </div>
-              ))}
-            </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-              Les modifications s&apos;appliquent à votre prochaine box. Date limite de modification : 7 jours avant la livraison.
-            </div>
-          </div>
-        )}
-
-        {/* Onglet Historique */}
-        {tab === 'historique' && (
-          <div>
-            <h3 className="font-bold text-[#3D2B1F] text-lg mb-6" style={{ fontFamily: 'Georgia, serif' }}>Historique des livraisons</h3>
-            <div className="space-y-3">
-              {MOCK_SUBSCRIPTION.historique.map((h) => (
-                <div key={h.date} className="bg-white rounded-2xl p-5 border border-[#F5E6D3] flex items-center justify-between shadow-sm">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-semibold text-[#3D2B1F] text-sm">
-                        Box livrée le {new Date(h.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                      </div>
-                      <div className="text-xs text-[#A0856B]">{MOCK_SUBSCRIPTION.boxLabel}</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-[#3D2B1F]">{h.prix.toFixed(2)}€ HT</div>
-                    <div className="text-xs text-green-600">Prélevé</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
