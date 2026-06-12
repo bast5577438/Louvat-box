@@ -166,7 +166,12 @@ export default function HomePage() {
                     {b.badge}
                   </span>
                 )}
-                <div className="text-3xl mb-3">🍪</div>
+                {b.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={b.image} alt={b.name} className="w-full h-20 object-cover rounded-xl mb-3" />
+                ) : (
+                  <div className="text-3xl mb-3">🍪</div>
+                )}
                 <h4 className="font-bold text-[#3E4743] text-sm mb-1" style={{ fontFamily: 'Georgia, serif' }}>{b.name}</h4>
                 <p className="text-[#8A8E89] text-xs">{b.description}</p>
               </div>
