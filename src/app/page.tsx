@@ -61,8 +61,8 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="relative bg-[#2A302D] py-4">
-          <div className="max-w-6xl mx-auto px-4 flex flex-wrap justify-center md:justify-around gap-6 text-center">
+        <div className="relative px-4 pb-8 md:pb-12">
+          <div className="max-w-4xl mx-auto bg-[#2A302D]/75 backdrop-blur-md rounded-3xl px-6 py-6 flex flex-wrap justify-center md:justify-around gap-6 text-center shadow-xl">
             {[
               { val: '12+', label: 'Variétés de biscuits' },
               { val: '400+', label: 'Abonnés satisfaits' },
