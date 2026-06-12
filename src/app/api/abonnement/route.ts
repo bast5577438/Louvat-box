@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdminClient } from '@/lib/supabase';
-import { getResend, getFromEmail } from '@/lib/resend';
+import { getResend, getFromEmail, resolveRecipient } from '@/lib/resend';
 import { ORDER_EMAIL } from '@/lib/contact';
 import { biscuits, boxSizes, engagements } from '@/lib/data';
 
@@ -104,7 +104,7 @@ async function sendOrderNotification(order: {
   try {
     await resend.emails.send({
       from: getFromEmail(),
-      to: ORDER_EMAIL,
+      to: resolveRecipient(ORDER_EMAIL),
       subject: `Nouvelle commande Louvat Box — ${order.email}`,
       text: lines.join('\n'),
     });

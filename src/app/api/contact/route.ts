@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getResend, getFromEmail } from '@/lib/resend';
+import { getResend, getFromEmail, resolveRecipient } from '@/lib/resend';
 import { CONTACT_EMAIL } from '@/lib/contact';
 
 /**
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
   try {
     await resend.emails.send({
       from: getFromEmail(),
-      to: CONTACT_EMAIL,
+      to: resolveRecipient(CONTACT_EMAIL),
       replyTo: email,
       subject: subject || `Nouveau message de ${name} via le site Louvat Box`,
       text: [

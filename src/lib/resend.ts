@@ -34,3 +34,17 @@ export function getResend(): Resend | null {
 export function getFromEmail(): string {
   return process.env.RESEND_FROM_EMAIL || 'Louvat Box <onboarding@resend.dev>';
 }
+
+/**
+ * Renvoie l'adresse de destination réelle d'une notification, ou
+ * `RESEND_TEST_REDIRECT_EMAIL` si défini.
+ *
+ * Tant que le domaine biscuiterie-louvat.com n'est pas vérifié dans Resend,
+ * l'adresse de test `onboarding@resend.dev` ne peut envoyer que vers
+ * l'adresse du compte Resend. `RESEND_TEST_REDIRECT_EMAIL` permet de tout
+ * recevoir sur cette adresse en attendant — à retirer de `.env.local` une
+ * fois le domaine vérifié pour revenir aux vraies adresses (cib@, commande@).
+ */
+export function resolveRecipient(target: string): string {
+  return process.env.RESEND_TEST_REDIRECT_EMAIL || target;
+}
