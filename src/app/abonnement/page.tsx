@@ -17,6 +17,7 @@ function AbonnementContent() {
   const [ceValid, setCeValid] = useState<null | { employerPct: number; valid: boolean }>(null);
   const [form, setForm] = useState({ prenom: '', nom: '', email: '', tel: '', adresse: '', ville: '', cp: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   const selectedTaille = params.get('taille') ?? 'decouverte';
   const boxSize = boxSizes.find((s) => s.id === selectedTaille) ?? boxSizes[0];
@@ -50,8 +51,34 @@ function AbonnementContent() {
     }
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     setSubmitted(true);
+
+    // Crée (ou met à jour) l'espace abonné côté Supabase, pour que le
+    // client retrouve sa formule et sa sélection dans /mon-compte et que
+    // la gérante le voie dans l'admin > Clients.
+    try {
+      const res = await fetch('/api/abonnement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prenom: form.prenom,
+          nom: form.nom,
+          email: form.email,
+          engagement: selectedEngagement.id,
+          box_id: boxSize.id,
+          prix: finalPrice,
+          ce_code: ceValid?.valid ? ceCode : null,
+          selections: selectedBiscuits.map((b) => b.id),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.error ?? "Votre paiement est confirmé, mais l'enregistrement de votre espace abonné a échoué. Contactez-nous pour le mettre à jour.");
+      }
+    } catch {
+      setSaveError("Votre paiement est confirmé, mais l'enregistrement de votre espace abonné a échoué. Contactez-nous pour le mettre à jour.");
+    }
   }
 
   const steps = [
@@ -74,6 +101,17 @@ function AbonnementContent() {
           <p className="text-[#8B4513] mb-6">
             Bienvenue chez Louvat, {form.prenom} ! Votre première box sera livrée dans les prochains jours.
             Un email de confirmation a été envoyé à <strong>{form.email}</strong>.
+          </p>
+
+          {saveError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800 text-left">
+              {saveError}
+            </div>
+          )}
+
+          <p className="text-[#A0856B] text-sm mb-6">
+            Créez votre espace abonné avec l&apos;adresse <strong>{form.email}</strong> pour suivre votre
+            abonnement, mettre en pause ou modifier votre sélection à tout moment.
           </p>
           <div className="bg-white rounded-2xl p-6 border border-[#F5E6D3] mb-6 text-left">
             <div className="font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif</div>
