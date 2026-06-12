@@ -94,6 +94,9 @@ export default function HomePage() {
       {/* LES 3 VALEURS LOUVAT */}
       <section className="max-w-6xl mx-auto px-4 py-20">
         <div className="text-center mb-12">
+          <p className="text-[#D2691E] italic font-medium mb-2">
+            Lovée au pied des Alpes, notre Biscuiterie est avant tout une histoire de passionnés !
+          </p>
           <h2 className="text-3xl md:text-4xl font-bold text-[#3D2B1F]" style={{ fontFamily: 'Georgia, serif' }}>
             Maison de qualité depuis 1954
           </h2>
@@ -237,11 +240,16 @@ export default function HomePage() {
           <div className="flex-1">
             <Building2 className="w-12 h-12 text-[#F4A460] mx-auto md:mx-0 mb-4" />
             <h2 className="text-3xl font-bold mb-3" style={{ fontFamily: 'Georgia, serif' }}>
-              Vous êtes un Comité d&apos;Entreprise ?
+              Et si vos pauses café avaient plus d&apos;impact que prévu ?
             </h2>
+            <p className="text-[#D2B48C] max-w-lg mb-3">
+              Chaque box que vous recevez, ce n&apos;est pas juste des biscuits à partager en équipe : c&apos;est une contribution directe à des producteurs et artisans locaux, sélectionnés avec exigence.
+            </p>
+            <p className="text-[#F4A460] font-semibold max-w-lg mb-3">
+              La Box LOUVAT, c&apos;est la pause qui a du sens !
+            </p>
             <p className="text-[#D2B48C] max-w-lg">
-              Offrez des biscuits Louvat à vos salariés avec un financement partagé. L&apos;employeur prend en charge une partie,
-              Louvat offre 10% — le salarié ne paie que le reste.
+              Avec un financement partagé : l&apos;employeur prend en charge une partie, Louvat offre 10% — le salarié ne paie que le reste.
             </p>
           </div>
           <div className="flex-shrink-0 flex flex-col items-center gap-4">
@@ -296,7 +304,8 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold text-[#3D2B1F] mb-4" style={{ fontFamily: 'Georgia, serif' }}>
             Prêt à vous régaler ?
           </h2>
-          <p className="text-[#8B4513] mb-8">À partir de 25€/mois. Sans engagement. Résiliable à tout moment.</p>
+          <p className="text-[#8B4513] mb-2">À partir de 30€ HT/mois. Sans engagement possible. Résiliable à tout moment.</p>
+          <p className="text-[#D2691E] italic mb-8">... c&apos;est le début d&apos;une grande histoire d&apos;amour.</p>
           <Link
             href="/abonnement"
             className="inline-flex items-center gap-2 bg-[#3D2B1F] text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-[#8B4513] transition-all shadow-lg"

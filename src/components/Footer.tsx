@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Cookie, Share2, Heart, Mail } from 'lucide-react';
+import Image from 'next/image';
+import { Share2, Heart, Mail } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -7,12 +8,17 @@ export default function Footer() {
       <div className="max-w-6xl mx-auto px-4 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         {/* Brand */}
         <div className="md:col-span-1">
-          <div className="flex items-center gap-2 mb-3">
-            <Cookie className="w-5 h-5 text-[#F4A460]" />
-            <span className="font-bold text-lg text-white" style={{ fontFamily: 'Georgia, serif' }}>Louvat</span>
+          <div className="mb-3">
+            <Image
+              src="/logo-louvat.png"
+              alt="Biscuiterie Louvat"
+              width={140}
+              height={63}
+              className="brightness-0 invert"
+            />
           </div>
           <p className="text-sm text-[#D2B48C] leading-relaxed">
-            Maison de qualité depuis 1954. Biscuits pur beurre artisanaux, fabriqués à Saint-Geoire-en-Valdaine (38620).
+            Maison de qualité depuis 1954. Biscuits pur beurre artisanaux, fabriqués au pied des Alpes.
           </p>
           <div className="flex gap-3 mt-4">
             <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-[#F4A460] transition-colors"><Heart className="w-5 h-5" /></a>
@@ -47,7 +53,14 @@ export default function Footer() {
           <ul className="space-y-2 text-sm text-[#D2B48C]">
             <li><Link href="/mon-compte" className="hover:text-[#F4A460] transition-colors">Mon espace abonné</Link></li>
             <li><Link href="/contact" className="hover:text-[#F4A460] transition-colors">Nous contacter</Link></li>
-            <li className="text-[#D2B48C]">Saint-Geoire-en-Valdaine, 38620</li>
+            <li className="pt-1">
+              <span className="block font-medium text-white/90">Biscuiterie &amp; magasin usine</span>
+              452 Route de Chartreuse, 38620 Saint-Geoire-en-Valdaine
+            </li>
+            <li>
+              <span className="block font-medium text-white/90">Boutique</span>
+              8 avenue Raymond Tezier, 38500 Voiron
+            </li>
           </ul>
         </div>
       </div>

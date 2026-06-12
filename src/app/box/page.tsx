@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ShoppingBag, Plus, Minus, ArrowRight, Info } from 'lucide-react';
+import { ShoppingBag, Plus, Minus, ArrowRight, Info, Gift, Megaphone } from 'lucide-react';
 import { biscuits, boxSizes, type Biscuit } from '@/lib/data';
 
 const CATEGORIES = ['Tous', ...Array.from(new Set(biscuits.map((b) => b.category)))];
@@ -50,6 +50,20 @@ export default function BoxPage() {
           Composez votre box
         </h1>
         <p className="text-[#D2B48C]">Sélectionnez vos biscuits préférés parmi notre gamme artisanale</p>
+      </div>
+
+      {/* Le 1er mois, en plus de vos biscuits */}
+      <div className="bg-[#FAF0E6] border-b border-[#F4A460]/30">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 text-center text-sm text-[#8B4513]">
+          <div className="flex items-center gap-2">
+            <Gift className="w-5 h-5 text-[#D2691E] flex-shrink-0" />
+            <span>Le <strong>1er mois</strong>, vous recevez aussi une boîte et un mini plateau vintage Louvat</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Megaphone className="w-5 h-5 text-[#D2691E] flex-shrink-0" />
+            <span>+ un support de communication Louvat</span>
+          </div>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-8">

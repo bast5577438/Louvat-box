@@ -21,12 +21,11 @@ export default function Navbar() {
         {/* Logo réel Louvat */}
         <Link href="/" className="flex items-center gap-3">
           <Image
-            src="https://biscuiterie-louvat.com/cdn/shop/files/logo_Louvat_gris_446C_800x.png?v=1614330419"
+            src="/logo-louvat.png"
             alt="Biscuiterie Louvat"
             width={110}
-            height={40}
+            height={50}
             className="brightness-0 invert"
-            unoptimized
           />
           <span className="text-[#F4A460] text-xs font-medium hidden sm:block">· La Box</span>
         </Link>
