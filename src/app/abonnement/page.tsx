@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, ChevronRight, CreditCard, Package, User } from 'lucide-react';
-import { engagements, biscuits, boxSizes } from '@/lib/data';
+import { engagements, boxSizes, type Biscuit } from '@/lib/data';
 import SepaPaymentSection from '@/components/SepaPaymentSection';
 
 type Step = 1 | 2 | 3 | 4;
@@ -18,6 +18,14 @@ function AbonnementContent() {
   const [form, setForm] = useState({ prenom: '', nom: '', email: '', tel: '', adresse: '', ville: '', cp: '' });
   const [submitted, setSubmitted] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [produits, setProduits] = useState<Biscuit[]>([]);
+
+  useEffect(() => {
+    fetch('/api/produits')
+      .then((res) => res.json())
+      .then((data) => setProduits(data.produits ?? []))
+      .catch(() => setProduits([]));
+  }, []);
 
   const selectedTaille = params.get('taille') ?? 'decouverte';
   const boxSize = boxSizes.find((s) => s.id === selectedTaille) ?? boxSizes[0];
@@ -26,7 +34,7 @@ function AbonnementContent() {
   const selectedBiscuits = selectionParam
     ? selectionParam.split(',').flatMap((s) => {
         const [id, qty] = s.split('x');
-        const b = biscuits.find((b) => b.id === Number(id));
+        const b = produits.find((b) => b.id === Number(id));
         return b ? Array.from({ length: Number(qty) }, () => b) : [];
       })
     : [];
@@ -97,15 +105,15 @@ function AbonnementContent() {
 
   if (submitted) {
     return (
-      <div className="bg-[#FFF8F0] min-h-screen flex items-center justify-center px-4">
+      <div className="bg-[#FBF4E9] min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+          <h1 className="text-3xl font-bold text-[#3E4743] mb-3" style={{ fontFamily: 'Georgia, serif' }}>
             Abonnement confirmé !
           </h1>
-          <p className="text-[#8B4513] mb-6">
+          <p className="text-[#5C6B65] mb-6">
             Bienvenue chez Louvat, {form.prenom} ! Votre première box sera livrée dans les prochains jours.
             Un email de confirmation a été envoyé à <strong>{form.email}</strong>.
           </p>
@@ -116,24 +124,24 @@ function AbonnementContent() {
             </div>
           )}
 
-          <p className="text-[#A0856B] text-sm mb-6">
+          <p className="text-[#8A8E89] text-sm mb-6">
             Créez votre espace abonné avec l&apos;adresse <strong>{form.email}</strong> pour suivre votre
             abonnement, mettre en pause ou modifier votre sélection à tout moment.
           </p>
-          <div className="bg-white rounded-2xl p-6 border border-[#F5E6D3] mb-6 text-left">
-            <div className="font-bold text-[#3D2B1F] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif</div>
+          <div className="bg-white rounded-2xl p-6 border border-[#F3E4CD] mb-6 text-left">
+            <div className="font-bold text-[#3E4743] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif</div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-[#8B4513]">Engagement</span><span className="font-semibold">{selectedEngagement.label}</span></div>
-              <div className="flex justify-between"><span className="text-[#8B4513]">Box</span><span className="font-semibold">{boxSize.label}</span></div>
-              {ceValid?.valid && <div className="flex justify-between"><span className="text-[#8B4513]">Remise Louvat</span><span className="text-green-600 font-semibold">-10%</span></div>}
-              {ceValid?.valid && <div className="flex justify-between"><span className="text-[#8B4513]">Remise employeur</span><span className="text-green-600 font-semibold">-{ceValid.employerPct}%</span></div>}
-              <div className="border-t border-[#F5E6D3] pt-2 flex justify-between font-bold text-[#3D2B1F]">
+              <div className="flex justify-between"><span className="text-[#5C6B65]">Engagement</span><span className="font-semibold">{selectedEngagement.label}</span></div>
+              <div className="flex justify-between"><span className="text-[#5C6B65]">Box</span><span className="font-semibold">{boxSize.label}</span></div>
+              {ceValid?.valid && <div className="flex justify-between"><span className="text-[#5C6B65]">Remise Louvat</span><span className="text-green-600 font-semibold">-10%</span></div>}
+              {ceValid?.valid && <div className="flex justify-between"><span className="text-[#5C6B65]">Remise employeur</span><span className="text-green-600 font-semibold">-{ceValid.employerPct}%</span></div>}
+              <div className="border-t border-[#F3E4CD] pt-2 flex justify-between font-bold text-[#3E4743]">
                 <span>Total /mois</span>
                 <span>{finalPrice.toFixed(2)}€ HT</span>
               </div>
             </div>
           </div>
-          <Link href="/mon-compte" className="block bg-[#3D2B1F] text-white py-3 rounded-full font-semibold hover:bg-[#8B4513] transition-all">
+          <Link href="/mon-compte" className="block bg-[#3E4743] text-white py-3 rounded-full font-semibold hover:bg-[#5C6B65] transition-all">
             Gérer mon abonnement →
           </Link>
         </div>
@@ -142,10 +150,10 @@ function AbonnementContent() {
   }
 
   return (
-    <div className="bg-[#FFF8F0] min-h-screen">
-      <div className="bg-[#3D2B1F] text-white py-10 text-center">
+    <div className="bg-[#FBF4E9] min-h-screen">
+      <div className="bg-[#3E4743] text-white py-10 text-center">
         <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'Georgia, serif' }}>Mon abonnement Louvat</h1>
-        <p className="text-[#D2B48C] text-sm">Prélèvement SEPA · Sans engagement, trimestriel ou annuel</p>
+        <p className="text-[#E3D4BD] text-sm">Prélèvement SEPA · Sans engagement, trimestriel ou annuel</p>
       </div>
 
       {/* Stepper */}
@@ -154,13 +162,13 @@ function AbonnementContent() {
           {steps.map((s, i) => (
             <div key={s.n} className="flex items-center flex-1">
               <div className="flex flex-col items-center">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step >= s.n ? 'bg-[#8B4513] text-white' : 'bg-[#F5E6D3] text-[#A0856B]'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step >= s.n ? 'bg-[#5C6B65] text-white' : 'bg-[#F3E4CD] text-[#8A8E89]'}`}>
                   {step > s.n ? <CheckCircle className="w-4 h-4" /> : s.n}
                 </div>
-                <span className="text-xs mt-1 text-[#8B4513] hidden sm:block">{s.label}</span>
+                <span className="text-xs mt-1 text-[#5C6B65] hidden sm:block">{s.label}</span>
               </div>
               {i < steps.length - 1 && (
-                <div className={`flex-1 h-1 mx-2 rounded-full ${step > s.n ? 'bg-[#8B4513]' : 'bg-[#F5E6D3]'}`} />
+                <div className={`flex-1 h-1 mx-2 rounded-full ${step > s.n ? 'bg-[#5C6B65]' : 'bg-[#F3E4CD]'}`} />
               )}
             </div>
           ))}
@@ -169,22 +177,22 @@ function AbonnementContent() {
         {/* Étape 1 : Formule */}
         {step === 1 && (
           <div>
-            <h2 className="text-xl font-bold text-[#3D2B1F] mb-6 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
-              <Package className="w-5 h-5 text-[#8B4513]" /> Choisissez votre engagement
+            <h2 className="text-xl font-bold text-[#3E4743] mb-6 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+              <Package className="w-5 h-5 text-[#5C6B65]" /> Choisissez votre engagement
             </h2>
 
             {/* Récap sélection biscuits */}
             {selectedBiscuits.length > 0 && (
-              <div className="bg-[#F5E6D3] rounded-xl p-4 mb-6">
-                <div className="font-semibold text-[#3D2B1F] text-sm mb-2">Votre sélection ({selectedBiscuits.length} biscuits — {boxSize.label}, {boxSize.weight})</div>
+              <div className="bg-[#F3E4CD] rounded-xl p-4 mb-6">
+                <div className="font-semibold text-[#3E4743] text-sm mb-2">Votre sélection ({selectedBiscuits.length} biscuits — {boxSize.label}, {boxSize.weight})</div>
                 <div className="flex flex-wrap gap-1">
                   {Array.from(new Set(selectedBiscuits.map((b) => b.name))).map((name) => (
-                    <span key={name} className="bg-white text-[#8B4513] text-xs px-2 py-1 rounded-full border border-[#D2B48C]">
+                    <span key={name} className="bg-white text-[#5C6B65] text-xs px-2 py-1 rounded-full border border-[#E3D4BD]">
                       {name}
                     </span>
                   ))}
                 </div>
-                <Link href="/box" className="text-xs text-[#A0856B] hover:text-[#8B4513] mt-2 inline-block">Modifier ma sélection</Link>
+                <Link href="/box" className="text-xs text-[#8A8E89] hover:text-[#5C6B65] mt-2 inline-block">Modifier ma sélection</Link>
               </div>
             )}
 
@@ -200,31 +208,31 @@ function AbonnementContent() {
                 <button
                   key={e.id}
                   onClick={() => setSelectedEngagement(e)}
-                  className={`p-6 rounded-2xl border-2 text-left transition-all ${selectedEngagement.id === e.id ? 'border-[#8B4513] bg-[#F5E6D3]' : 'border-[#F5E6D3] bg-white hover:border-[#D2B48C]'}`}
+                  className={`p-6 rounded-2xl border-2 text-left transition-all ${selectedEngagement.id === e.id ? 'border-[#5C6B65] bg-[#F3E4CD]' : 'border-[#F3E4CD] bg-white hover:border-[#E3D4BD]'}`}
                 >
-                  {e.popular && <span className="text-xs font-bold text-[#F4A460] block mb-1">⭐ MEILLEUR PRIX</span>}
-                  <div className="font-bold text-[#3D2B1F] text-lg mb-1" style={{ fontFamily: 'Georgia, serif' }}>{e.label}</div>
-                  <div className="text-2xl font-bold text-[#8B4513]">{boxSize.prices[e.id]}€ <span className="text-sm font-normal text-[#A0856B]">HT</span></div>
-                  <div className="text-xs text-[#A0856B]">/ mois</div>
-                  <div className="text-xs text-[#8B4513] mt-2">{e.description}</div>
+                  {e.popular && <span className="text-xs font-bold text-[#F48F98] block mb-1">⭐ MEILLEUR PRIX</span>}
+                  <div className="font-bold text-[#3E4743] text-lg mb-1" style={{ fontFamily: 'Georgia, serif' }}>{e.label}</div>
+                  <div className="text-2xl font-bold text-[#5C6B65]">{boxSize.prices[e.id]}€ <span className="text-sm font-normal text-[#8A8E89]">HT</span></div>
+                  <div className="text-xs text-[#8A8E89]">/ mois</div>
+                  <div className="text-xs text-[#5C6B65] mt-2">{e.description}</div>
                 </button>
               ))}
             </div>
 
             {/* Code CE */}
-            <div className="bg-white rounded-2xl border border-[#F5E6D3] p-5 mb-6">
-              <div className="font-semibold text-[#3D2B1F] mb-2 text-sm">Vous avez un code CE ?</div>
+            <div className="bg-white rounded-2xl border border-[#F3E4CD] p-5 mb-6">
+              <div className="font-semibold text-[#3E4743] mb-2 text-sm">Vous avez un code CE ?</div>
               <div className="flex gap-2">
                 <input
                   value={ceCode}
                   onChange={(e) => { setCeCode(e.target.value.toUpperCase()); setCeValid(null); }}
                   placeholder="Ex: CE2024"
-                  className="flex-1 border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]"
+                  className="flex-1 border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]"
                 />
                 <button
                   onClick={checkCeCode}
                   disabled={checkingCe || ceCode.length === 0}
-                  className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#5C6B65] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3E4743] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {checkingCe ? 'Vérification…' : 'Appliquer'}
                 </button>
@@ -238,15 +246,15 @@ function AbonnementContent() {
                 <div className="mt-2 text-sm text-red-600">Code invalide. Vérifiez avec votre CE.</div>
               )}
               {!ceValid && (
-                <p className="mt-2 text-xs text-[#A0856B]">Sans code CE, le tarif affiché ci-dessous est le tarif plein (box classique).</p>
+                <p className="mt-2 text-xs text-[#8A8E89]">Sans code CE, le tarif affiché ci-dessous est le tarif plein (box classique).</p>
               )}
             </div>
 
             {/* Récap prix */}
-            <div className="bg-[#3D2B1F] text-white rounded-2xl p-5 mb-6">
+            <div className="bg-[#3E4743] text-white rounded-2xl p-5 mb-6">
               <div className="font-bold mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif tarifaire</div>
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-[#D2B48C]">Prix de base</span><span>{basePrice.toFixed(2)}€ HT</span></div>
+                <div className="flex justify-between"><span className="text-[#E3D4BD]">Prix de base</span><span>{basePrice.toFixed(2)}€ HT</span></div>
                 {ceValid?.valid && (
                   <div className="flex justify-between text-green-400"><span>Remise Louvat (10%)</span><span>-{louvat_discount.toFixed(2)}€</span></div>
                 )}
@@ -255,15 +263,15 @@ function AbonnementContent() {
                 )}
                 <div className="border-t border-[#5C3D2E] pt-2 flex justify-between font-bold text-lg">
                   <span>Vous payez</span>
-                  <span className="text-[#F4A460]">{finalPrice.toFixed(2)}€ HT</span>
+                  <span className="text-[#F48F98]">{finalPrice.toFixed(2)}€ HT</span>
                 </div>
-                <div className="text-xs text-[#A0856B]">Prélevé par SEPA · Facturation mensuelle · {selectedEngagement.label}</div>
+                <div className="text-xs text-[#8A8E89]">Prélevé par SEPA · Facturation mensuelle · {selectedEngagement.label}</div>
               </div>
             </div>
 
             <button
               onClick={() => setStep(2)}
-              className="w-full bg-[#8B4513] text-white py-4 rounded-full font-bold hover:bg-[#3D2B1F] transition-all flex items-center justify-center gap-2"
+              className="w-full bg-[#5C6B65] text-white py-4 rounded-full font-bold hover:bg-[#3E4743] transition-all flex items-center justify-center gap-2"
             >
               Continuer <ChevronRight className="w-5 h-5" />
             </button>
@@ -273,52 +281,52 @@ function AbonnementContent() {
         {/* Étape 2 : Informations */}
         {step === 2 && (
           <div>
-            <h2 className="text-xl font-bold text-[#3D2B1F] mb-6 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
-              <User className="w-5 h-5 text-[#8B4513]" /> Vos informations
+            <h2 className="text-xl font-bold text-[#3E4743] mb-6 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+              <User className="w-5 h-5 text-[#5C6B65]" /> Vos informations
             </h2>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Prénom *</label>
-                  <input value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" required />
+                  <label className="block text-sm font-medium text-[#3E4743] mb-1">Prénom *</label>
+                  <input value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })} className="w-full border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Nom *</label>
-                  <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" required />
+                  <label className="block text-sm font-medium text-[#3E4743] mb-1">Nom *</label>
+                  <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} className="w-full border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" required />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Email *</label>
-                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" required />
+                <label className="block text-sm font-medium text-[#3E4743] mb-1">Email *</label>
+                <input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Téléphone</label>
-                <input type="tel" value={form.tel} onChange={(e) => setForm({ ...form, tel: e.target.value })} className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <label className="block text-sm font-medium text-[#3E4743] mb-1">Téléphone</label>
+                <input type="tel" value={form.tel} onChange={(e) => setForm({ ...form, tel: e.target.value })} className="w-full border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Adresse de livraison *</label>
-                <input value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" required />
+                <label className="block text-sm font-medium text-[#3E4743] mb-1">Adresse de livraison *</label>
+                <input value={form.adresse} onChange={(e) => setForm({ ...form, adresse: e.target.value })} className="w-full border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" required />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Code postal *</label>
-                  <input value={form.cp} onChange={(e) => setForm({ ...form, cp: e.target.value })} className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" required />
+                  <label className="block text-sm font-medium text-[#3E4743] mb-1">Code postal *</label>
+                  <input value={form.cp} onChange={(e) => setForm({ ...form, cp: e.target.value })} className="w-full border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" required />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#3D2B1F] mb-1">Ville *</label>
-                  <input value={form.ville} onChange={(e) => setForm({ ...form, ville: e.target.value })} className="w-full border border-[#D2B48C] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" required />
+                  <label className="block text-sm font-medium text-[#3E4743] mb-1">Ville *</label>
+                  <input value={form.ville} onChange={(e) => setForm({ ...form, ville: e.target.value })} className="w-full border border-[#E3D4BD] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" required />
                 </div>
               </div>
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setStep(1)} className="flex-1 border-2 border-[#D2B48C] text-[#8B4513] py-3 rounded-full font-semibold hover:bg-[#F5E6D3] transition-all">
+              <button onClick={() => setStep(1)} className="flex-1 border-2 border-[#E3D4BD] text-[#5C6B65] py-3 rounded-full font-semibold hover:bg-[#F3E4CD] transition-all">
                 Retour
               </button>
               <button
                 onClick={() => setStep(3)}
                 disabled={!form.prenom || !form.nom || !form.email || !form.adresse || !form.cp || !form.ville}
-                className="flex-1 bg-[#8B4513] text-white py-3 rounded-full font-bold hover:bg-[#3D2B1F] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 bg-[#5C6B65] text-white py-3 rounded-full font-bold hover:bg-[#3E4743] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 Continuer <ChevronRight className="w-5 h-5" />
               </button>
@@ -329,10 +337,10 @@ function AbonnementContent() {
         {/* Étape 3 : SEPA */}
         {step === 3 && (
           <div>
-            <h2 className="text-xl font-bold text-[#3D2B1F] mb-2 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
-              <CreditCard className="w-5 h-5 text-[#8B4513]" /> Prélèvement SEPA
+            <h2 className="text-xl font-bold text-[#3E4743] mb-2 flex items-center gap-2" style={{ fontFamily: 'Georgia, serif' }}>
+              <CreditCard className="w-5 h-5 text-[#5C6B65]" /> Prélèvement SEPA
             </h2>
-            <p className="text-sm text-[#8B4513] mb-6">Votre IBAN est sécurisé et chiffré. Aucune carte bancaire requise.</p>
+            <p className="text-sm text-[#5C6B65] mb-6">Votre IBAN est sécurisé et chiffré. Aucune carte bancaire requise.</p>
 
             <SepaPaymentSection
               billingDetails={{

@@ -25,11 +25,11 @@ function getAdminPassword(): string {
 
 /* ── Types ── */
 type Prospect = {
-  id: string;
+  id: number;
   societe: string;
   contact: string;
   email: string;
-  dateAjout: string;
+  date_ajout?: string;
 };
 
 type CECode = {
@@ -44,15 +44,6 @@ type CECode = {
   created_at?: string;
 };
 
-/* ── Données initiales ──
- * Site livré "prêt à l'emploi" : un seul exemple de Comité d'Entreprise
- * (code CE2024) pour démontrer le fonctionnement, aucun abonné ni chiffre
- * d'affaires fictif. Ajoutez vos vrais prospects/codes/abonnés au fil de
- * l'eau depuis cet espace admin. */
-const mockProspects: Prospect[] = [
-  { id: '1', societe: 'TechCorp SAS', contact: 'Sophie Martin', email: 'ce@techcorp.fr', dateAjout: '2024-01-10' },
-];
-
 /* ══════════════════════════════════════════════
    COMPOSANT PRINCIPAL
 ══════════════════════════════════════════════ */
@@ -63,9 +54,26 @@ export default function AdminPage() {
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'produits' | 'ce' | 'abonnes' | 'prospectus' | 'parametres'>('produits');
 
-  /* Données partagées entre les onglets CE et Prospectus
-     (un code CE est toujours lié à un contact entreprise) */
-  const [prospects, setProspects] = useState<Prospect[]>(mockProspects);
+  /* Contacts entreprise (table `prospects` sur Supabase), partagés entre
+     les onglets CE et Prospectus (un code CE est toujours lié à un contact) */
+  const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [prospectsLoading, setProspectsLoading] = useState(false);
+  const [prospectsError, setProspectsError] = useState('');
+
+  const fetchProspects = useCallback(async () => {
+    setProspectsLoading(true);
+    setProspectsError('');
+    try {
+      const res = await fetch('/api/admin/prospects', { headers: { 'x-admin-password': getAdminPassword() } });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur de chargement');
+      setProspects(json.prospects ?? []);
+    } catch (err) {
+      setProspectsError(err instanceof Error ? err.message : 'Erreur de chargement des contacts.');
+    } finally {
+      setProspectsLoading(false);
+    }
+  }, []);
 
   /* Codes CE (table `ce_codes` sur Supabase) */
   const [codes, setCodes] = useState<CECode[]>([]);
@@ -132,14 +140,15 @@ export default function AdminPage() {
     if (sessionStorage.getItem('louvat_admin') === '1') setLoggedIn(true);
   }, []);
 
-  /* Charger les clients, le catalogue et les codes CE une fois connecté */
+  /* Charger les clients, le catalogue, les codes CE et les contacts une fois connecté */
   useEffect(() => {
     if (loggedIn) {
       fetchAbonnes();
       fetchProduits();
       fetchCeCodes();
+      fetchProspects();
     }
-  }, [loggedIn, fetchAbonnes, fetchProduits, fetchCeCodes]);
+  }, [loggedIn, fetchAbonnes, fetchProduits, fetchCeCodes, fetchProspects]);
 
   function login(e: React.FormEvent) {
     e.preventDefault();
@@ -161,7 +170,7 @@ export default function AdminPage() {
   /* ── LOGIN ── */
   if (!loggedIn) {
     return (
-      <div className="min-h-screen bg-[#3D2B1F] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[#3E4743] flex items-center justify-center px-4">
         <div className="bg-white rounded-3xl p-10 w-full max-w-sm shadow-2xl text-center">
           <Image
             src="https://biscuiterie-louvat.com/cdn/shop/files/logo_Louvat_gris_446C_800x.png?v=1614330419"
@@ -171,7 +180,7 @@ export default function AdminPage() {
             className="mx-auto mb-2"
             unoptimized
           />
-          <div className="text-[#8B4513] text-xs uppercase tracking-widest mb-6">Espace Administration</div>
+          <div className="text-[#5C6B65] text-xs uppercase tracking-widest mb-6">Espace Administration</div>
 
           <form onSubmit={login} className="space-y-4">
             <div className="relative">
@@ -180,9 +189,9 @@ export default function AdminPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mot de passe"
-                className="w-full border border-[#D2B48C] rounded-xl px-4 py-3 text-sm pr-10 focus:outline-none focus:border-[#8B4513]"
+                className="w-full border border-[#E3D4BD] rounded-xl px-4 py-3 text-sm pr-10 focus:outline-none focus:border-[#5C6B65]"
               />
-              <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#A0856B]">
+              <button type="button" onClick={() => setShowPwd(!showPwd)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8E89]">
                 {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
@@ -191,11 +200,11 @@ export default function AdminPage() {
                 <AlertCircle className="w-4 h-4" /> {error}
               </div>
             )}
-            <button type="submit" className="w-full bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all flex items-center justify-center gap-2">
+            <button type="submit" className="w-full bg-[#3E4743] text-white py-3 rounded-xl font-semibold hover:bg-[#5C6B65] transition-all flex items-center justify-center gap-2">
               <Lock className="w-4 h-4" /> Se connecter
             </button>
           </form>
-          <p className="text-xs text-[#A0856B] mt-4">Accès réservé à la Biscuiterie Louvat</p>
+          <p className="text-xs text-[#8A8E89] mt-4">Accès réservé à la Biscuiterie Louvat</p>
         </div>
       </div>
     );
@@ -205,7 +214,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header admin */}
-      <header className="bg-[#3D2B1F] text-white px-6 py-3 flex items-center justify-between">
+      <header className="bg-[#3E4743] text-white px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Image
             src="https://biscuiterie-louvat.com/cdn/shop/files/logo_Louvat_gris_446C_800x.png?v=1614330419"
@@ -215,9 +224,9 @@ export default function AdminPage() {
             className="brightness-0 invert"
             unoptimized
           />
-          <span className="text-[#F4A460] text-xs font-medium border-l border-[#5C3D2E] pl-3">Administration Box</span>
+          <span className="text-[#F48F98] text-xs font-medium border-l border-[#5C3D2E] pl-3">Administration Box</span>
         </div>
-        <button onClick={logout} className="flex items-center gap-2 text-[#D2B48C] hover:text-white text-sm transition-colors">
+        <button onClick={logout} className="flex items-center gap-2 text-[#E3D4BD] hover:text-white text-sm transition-colors">
           <LogOut className="w-4 h-4" /> Déconnexion
         </button>
       </header>
@@ -250,7 +259,7 @@ export default function AdminPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id as typeof tab)}
-              className={`flex items-center gap-2 pb-3 px-4 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${tab === t.id ? 'border-[#8B4513] text-[#8B4513]' : 'border-transparent text-gray-400 hover:text-[#8B4513]'}`}
+              className={`flex items-center gap-2 pb-3 px-4 text-sm font-semibold border-b-2 transition-all whitespace-nowrap ${tab === t.id ? 'border-[#5C6B65] text-[#5C6B65]' : 'border-transparent text-gray-400 hover:text-[#5C6B65]'}`}
             >
               {t.icon}{t.label}
             </button>
@@ -286,7 +295,16 @@ export default function AdminPage() {
             getAdminPassword={getAdminPassword}
           />
         )}
-        {tab === 'prospectus' && <TabProspectus prospects={prospects} setProspects={setProspects} codes={codes} />}
+        {tab === 'prospectus' && (
+          <TabProspectus
+            prospects={prospects}
+            loading={prospectsLoading}
+            error={prospectsError}
+            onRefresh={fetchProspects}
+            getAdminPassword={getAdminPassword}
+            codes={codes}
+          />
+        )}
         {tab === 'parametres' && <TabParametres />}
       </div>
     </div>
@@ -400,7 +418,7 @@ function TabProduits({
         </div>
         <div className="flex items-center gap-3">
           {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Sauvegardé</span>}
-          <button onClick={openNew} className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2">
+          <button onClick={openNew} className="bg-[#5C6B65] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3E4743] transition-all flex items-center gap-2">
             <Plus className="w-4 h-4" /> Ajouter un produit
           </button>
         </div>
@@ -422,7 +440,7 @@ function TabProduits({
             {b.image ? (
               <img src={b.image} alt={b.name} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
             ) : (
-              <div className="w-16 h-16 rounded-xl bg-[#F5E6D3] flex items-center justify-center text-2xl flex-shrink-0">🍪</div>
+              <div className="w-16 h-16 rounded-xl bg-[#F3E4CD] flex items-center justify-center text-2xl flex-shrink-0">🍪</div>
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
@@ -431,8 +449,8 @@ function TabProduits({
                   <p className="text-gray-500 text-xs truncate">{b.description}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full">{b.category}</span>
-                    <span className="text-[#8B4513] font-bold text-xs">à partir de {b.price}€</span>
-                    {b.badge && <span className="bg-[#F4A460] text-[#3D2B1F] text-xs px-2 py-0.5 rounded-full">{b.badge}</span>}
+                    <span className="text-[#5C6B65] font-bold text-xs">à partir de {b.price}€</span>
+                    {b.badge && <span className="bg-[#F48F98] text-[#3E4743] text-xs px-2 py-0.5 rounded-full">{b.badge}</span>}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -467,31 +485,31 @@ function TabProduits({
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nom *</label>
-                <input value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description *</label>
-                <textarea rows={2} value={form.description ?? ''} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] resize-none" />
+                <textarea rows={2} value={form.description ?? ''} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] resize-none" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prix de base (€) *</label>
-                  <input type="number" step="0.10" value={form.price ?? ''} onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                  <input type="number" step="0.10" value={form.price ?? ''} onChange={(e) => setForm({ ...form, price: parseFloat(e.target.value) })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Catégorie</label>
-                  <select value={form.category ?? ''} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                  <select value={form.category ?? ''} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] bg-white">
                     {categories.map((c) => <option key={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">URL image (optionnel)</label>
-                <input value={form.image ?? ''} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="https://..." className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input value={form.image ?? ''} onChange={(e) => setForm({ ...form, image: e.target.value })} placeholder="https://..." className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Badge (optionnel)</label>
-                <input value={form.badge ?? ''} onChange={(e) => setForm({ ...form, badge: e.target.value })} placeholder="Ex: Nouveau, Bestseller, Favori" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input value={form.badge ?? ''} onChange={(e) => setForm({ ...form, badge: e.target.value })} placeholder="Ex: Nouveau, Bestseller, Favori" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div className="flex items-center gap-3">
                 <input type="checkbox" id="avail" checked={form.available !== false} onChange={(e) => setForm({ ...form, available: e.target.checked })} className="accent-amber-800 w-4 h-4" />
@@ -505,7 +523,7 @@ function TabProduits({
             )}
             <div className="flex gap-3 mt-6">
               <button onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50 transition-all">Annuler</button>
-              <button onClick={saveForm} disabled={saving || !form.name || !form.description || !form.price} className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all disabled:opacity-50">
+              <button onClick={saveForm} disabled={saving || !form.name || !form.description || !form.price} className="flex-1 bg-[#3E4743] text-white py-3 rounded-xl font-semibold hover:bg-[#5C6B65] transition-all disabled:opacity-50">
                 {saving ? 'Enregistrement…' : 'Enregistrer'}
               </button>
             </div>
@@ -628,7 +646,7 @@ function TabCE({
           {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Enregistré !</span>}
           <button
             onClick={openNew}
-            className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2"
+            className="bg-[#5C6B65] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3E4743] transition-all flex items-center gap-2"
           >
             <Plus className="w-4 h-4" /> Nouveau code CE
           </button>
@@ -648,7 +666,7 @@ function TabCE({
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <span className="bg-[#3D2B1F] text-white font-mono font-bold text-sm px-3 py-1 rounded-lg">{ce.code}</span>
+                    <span className="bg-[#3E4743] text-white font-mono font-bold text-sm px-3 py-1 rounded-lg">{ce.code}</span>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${ce.actif ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
                       {ce.actif ? '● Actif' : '● Inactif'}
                     </span>
@@ -663,7 +681,7 @@ function TabCE({
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => openEdit(ce)} className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-[#8B4513] transition-all" title="Modifier">
+                  <button onClick={() => openEdit(ce)} className="p-2 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-[#5C6B65] transition-all" title="Modifier">
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button onClick={() => toggleActif(ce)} className={`p-2 rounded-xl text-sm font-medium transition-all ${ce.actif ? 'bg-red-50 text-red-500 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`} title={ce.actif ? 'Désactiver' : 'Activer'}>
@@ -696,10 +714,10 @@ function TabCE({
                   <select
                     defaultValue=""
                     onChange={(e) => {
-                      const p = prospects.find((pr) => pr.id === e.target.value);
+                      const p = prospects.find((pr) => pr.id === Number(e.target.value));
                       if (p) setForm({ ...form, societe: p.societe, contact: p.contact, email: p.email });
                     }}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] bg-white"
                   >
                     <option value="">— Choisir un contact —</option>
                     {prospects.map((p) => <option key={p.id} value={p.id}>{p.societe} — {p.contact}</option>)}
@@ -708,33 +726,33 @@ function TabCE({
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Société *</label>
-                <input required value={form.societe ?? ''} onChange={(e) => setForm({ ...form, societe: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input required value={form.societe ?? ''} onChange={(e) => setForm({ ...form, societe: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Contact</label>
-                  <input value={form.contact ?? ''} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                  <input value={form.contact ?? ''} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                  <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                  <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Code CE *</label>
-                  <input required value={form.code ?? ''} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="Ex: ACME2024" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#8B4513]" />
+                  <input required value={form.code ?? ''} onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })} placeholder="Ex: ACME2024" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#5C6B65]" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">% Employeur</label>
                   <div className="flex items-center gap-2">
                     <input type="range" min={0} max={60} value={form.employer_pct ?? 30} onChange={(e) => setForm({ ...form, employer_pct: Number(e.target.value) })} className="flex-1 accent-amber-800" />
-                    <span className="font-bold text-[#8B4513] w-10">{form.employer_pct}%</span>
+                    <span className="font-bold text-[#5C6B65] w-10">{form.employer_pct}%</span>
                   </div>
                 </div>
               </div>
-              <div className="bg-[#F5E6D3] rounded-xl p-3 text-sm">
-                <strong className="text-[#3D2B1F]">Répartition :</strong>
+              <div className="bg-[#F3E4CD] rounded-xl p-3 text-sm">
+                <strong className="text-[#3E4743]">Répartition :</strong>
                 <div className="flex gap-2 mt-1 text-xs">
                   <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Employeur {form.employer_pct}%</span>
                   <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Louvat 10%</span>
@@ -748,7 +766,7 @@ function TabCE({
               )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50">Annuler</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all disabled:opacity-50">{saving ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Créer le code'}</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-[#3E4743] text-white py-3 rounded-xl font-semibold hover:bg-[#5C6B65] transition-all disabled:opacity-50">{saving ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Créer le code'}</button>
               </div>
             </form>
           </div>
@@ -870,26 +888,26 @@ function TabAbonnes({
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all ${filter === f ? 'bg-[#8B4513] text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-[#D2B48C]'}`}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium capitalize transition-all ${filter === f ? 'bg-[#5C6B65] text-white' : 'bg-white text-gray-500 border border-gray-200 hover:border-[#E3D4BD]'}`}
             >
               {f}
             </button>
           ))}
-          <button onClick={openNew} className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2">
+          <button onClick={openNew} className="bg-[#5C6B65] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3E4743] transition-all flex items-center gap-2">
             <Plus className="w-4 h-4" /> Nouveau client
           </button>
         </div>
       </div>
 
       <p className="text-gray-500 text-sm mb-4">
-        Les clients créent eux-mêmes leur espace depuis <Link href="/mon-compte" className="text-[#8B4513] underline">Mon espace abonné</Link>. Utilisez cette section pour ajouter, modifier ou supprimer un espace manuellement (ex. abonnement pris par téléphone).
+        Les clients créent eux-mêmes leur espace depuis <Link href="/mon-compte" className="text-[#5C6B65] underline">Mon espace abonné</Link>. Utilisez cette section pour ajouter, modifier ou supprimer un espace manuellement (ex. abonnement pris par téléphone).
       </p>
 
       <input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Rechercher un client (nom, email...)"
-        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm mb-4 focus:outline-none focus:border-[#8B4513]"
+        className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm mb-4 focus:outline-none focus:border-[#5C6B65]"
       />
 
       {error && (
@@ -924,7 +942,7 @@ function TabAbonnes({
                     <div className="text-gray-400 text-xs">{box?.label ?? '—'}</div>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
-                    <span className="font-bold text-[#8B4513]">{s.prix != null ? `${s.prix.toFixed(2)}€` : '—'}</span>
+                    <span className="font-bold text-[#5C6B65]">{s.prix != null ? `${s.prix.toFixed(2)}€` : '—'}</span>
                   </td>
                   <td className="px-4 py-3 hidden lg:table-cell">
                     {s.ce_code ? (
@@ -973,28 +991,28 @@ function TabAbonnes({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
-                  <input value={form.prenom ?? ''} onChange={(e) => setForm({ ...form, prenom: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                  <input value={form.prenom ?? ''} onChange={(e) => setForm({ ...form, prenom: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
-                  <input value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                  <input value={form.name ?? ''} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Box</label>
-                  <select value={form.box_id ?? ''} onChange={(e) => setForm({ ...form, box_id: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                  <select value={form.box_id ?? ''} onChange={(e) => setForm({ ...form, box_id: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] bg-white">
                     <option value="">— Aucune —</option>
                     {boxSizes.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Formule</label>
-                  <select value={form.engagement ?? ''} onChange={(e) => setForm({ ...form, engagement: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                  <select value={form.engagement ?? ''} onChange={(e) => setForm({ ...form, engagement: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] bg-white">
                     <option value="">— Aucune —</option>
                     {Object.entries(ENGAGEMENT_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
                   </select>
@@ -1003,16 +1021,16 @@ function TabAbonnes({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prix (€ HT/mois)</label>
-                  <input type="number" step="0.01" value={form.prix ?? ''} onChange={(e) => setForm({ ...form, prix: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                  <input type="number" step="0.01" value={form.prix ?? ''} onChange={(e) => setForm({ ...form, prix: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Code CE</label>
-                  <input value={form.ce_code ?? ''} onChange={(e) => setForm({ ...form, ce_code: e.target.value.toUpperCase() })} placeholder="Optionnel" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#8B4513]" />
+                  <input value={form.ce_code ?? ''} onChange={(e) => setForm({ ...form, ce_code: e.target.value.toUpperCase() })} placeholder="Optionnel" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#5C6B65]" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
-                <select value={form.statut ?? 'actif'} onChange={(e) => setForm({ ...form, statut: e.target.value as Abonne['statut'] })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513] bg-white">
+                <select value={form.statut ?? 'actif'} onChange={(e) => setForm({ ...form, statut: e.target.value as Abonne['statut'] })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] bg-white">
                   <option value="actif">Actif</option>
                   <option value="pause">En pause</option>
                   <option value="résilié">Résilié</option>
@@ -1034,7 +1052,7 @@ function TabAbonnes({
 
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50">Annuler</button>
-                <button type="submit" disabled={saving} className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all disabled:opacity-50">
+                <button type="submit" disabled={saving} className="flex-1 bg-[#3E4743] text-white py-3 rounded-xl font-semibold hover:bg-[#5C6B65] transition-all disabled:opacity-50">
                   {saving ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Créer le client'}
                 </button>
               </div>
@@ -1051,18 +1069,34 @@ function TabAbonnes({
    (répertoire des contacts entreprise — ajout, modification,
     suppression — + envoi du catalogue trimestriel)
 ══════════════════════════════════════════════ */
-function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect[]; setProspects: React.Dispatch<React.SetStateAction<Prospect[]>>; codes: CECode[] }) {
+function TabProspectus({
+  prospects,
+  loading,
+  error,
+  onRefresh,
+  getAdminPassword,
+  codes,
+}: {
+  prospects: Prospect[];
+  loading: boolean;
+  error: string;
+  onRefresh: () => void;
+  getAdminPassword: () => string;
+  codes: CECode[];
+}) {
   /* — Répertoire des contacts — */
   const [editing, setEditing] = useState<Prospect | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<Partial<Prospect>>({});
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
 
   /* — Envoi du catalogue — */
-  const [sending, setSending] = useState<string | null>(null);
-  const [sent, setSent] = useState<string[]>([]);
+  const [sending, setSending] = useState<number | null>(null);
+  const [sent, setSent] = useState<number[]>([]);
   const [sendAll, setSendAll] = useState(false);
-  const [open, setOpen] = useState<string | null>(null);
+  const [open, setOpen] = useState<string | number | null>(null);
 
   /* Contacts ayant un code CE actif → ce sont eux qui reçoivent le prospectus */
   const activeContacts = prospects
@@ -1072,47 +1106,62 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
   function openNew() {
     setEditing(null);
     setForm({});
+    setFormError('');
     setShowForm(true);
   }
 
   function openEdit(p: Prospect) {
     setEditing(p);
     setForm({ ...p });
+    setFormError('');
     setShowForm(true);
   }
 
-  function saveProspect(e: React.FormEvent) {
+  async function saveProspect(e: React.FormEvent) {
     e.preventDefault();
-    if (editing) {
-      setProspects((list) => list.map((p) => p.id === editing.id
-        ? { ...p, societe: form.societe ?? p.societe, contact: form.contact ?? p.contact, email: form.email ?? p.email }
-        : p));
-    } else {
-      const newProspect: Prospect = {
-        id: Date.now().toString(),
-        societe: form.societe ?? '',
-        contact: form.contact ?? '',
-        email: form.email ?? '',
-        dateAjout: new Date().toISOString().split('T')[0],
-      };
-      setProspects((list) => [newProspect, ...list]);
+    if (!form.societe || !form.contact || !form.email) return;
+    setSaving(true);
+    setFormError('');
+    try {
+      const payload = { societe: form.societe, contact: form.contact, email: form.email };
+      const res = await fetch('/api/admin/prospects', {
+        method: editing ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
+        body: JSON.stringify(editing ? { id: editing.id, ...payload } : payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Erreur lors de l’enregistrement.');
+      setShowForm(false);
+      setEditing(null);
+      setForm({});
+      setSaved(true);
+      onRefresh();
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Erreur lors de l’enregistrement.');
+    } finally {
+      setSaving(false);
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({});
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
   }
 
-  function deleteProspect(p: Prospect) {
+  async function deleteProspect(p: Prospect) {
     const linked = codes.filter((c) => c.email === p.email);
     const message = linked.length > 0
       ? `Ce contact est lié à ${linked.length} code${linked.length > 1 ? 's' : ''} CE (${linked.map((c) => c.code).join(', ')}). Le supprimer quand même ?`
       : 'Supprimer ce contact ?';
-    if (confirm(message)) setProspects((list) => list.filter((x) => x.id !== p.id));
+    if (!confirm(message)) return;
+    try {
+      await fetch(`/api/admin/prospects?id=${p.id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-password': getAdminPassword() },
+      });
+      onRefresh();
+    } catch {
+      // ignore, l'utilisateur peut réessayer
+    }
   }
 
-  function simulateSend(id: string) {
+  function simulateSend(id: number) {
     setSending(id);
     setTimeout(() => {
       setSending(null);
@@ -1141,11 +1190,18 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
           </div>
           <div className="flex items-center gap-3">
             {saved && <span className="text-green-600 text-sm flex items-center gap-1"><CheckCircle className="w-4 h-4" />Enregistré !</span>}
-            <button onClick={openNew} className="bg-[#8B4513] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3D2B1F] transition-all flex items-center gap-2">
+            <button onClick={openNew} className="bg-[#5C6B65] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#3E4743] transition-all flex items-center gap-2">
               <Plus className="w-4 h-4" /> Nouveau contact
             </button>
           </div>
         </div>
+
+        {loading && <p className="text-gray-400 text-sm mb-4">Chargement des contacts…</p>}
+        {error && (
+          <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3 mb-4">
+            <AlertCircle className="w-4 h-4" /> {error}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {prospects.map((p) => {
@@ -1195,7 +1251,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
         <button
           onClick={simulateSendAll}
           disabled={sendAll || activeContacts.length === 0 || sent.length === activeContacts.length}
-          className="bg-[#3D2B1F] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#8B4513] transition-all flex items-center gap-2 disabled:opacity-50"
+          className="bg-[#3E4743] text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-[#5C6B65] transition-all flex items-center gap-2 disabled:opacity-50"
         >
           {sendAll ? (
             <><span className="animate-spin">⏳</span> Envoi en cours...</>
@@ -1214,8 +1270,8 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
           className="w-full flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#F5E6D3] rounded-lg flex items-center justify-center">
-              <Mail className="w-4 h-4 text-[#8B4513]" />
+            <div className="w-8 h-8 bg-[#F3E4CD] rounded-lg flex items-center justify-center">
+              <Mail className="w-4 h-4 text-[#5C6B65]" />
             </div>
             <div className="text-left">
               <div className="font-semibold text-gray-800">Modèle d&apos;email — {currentQuarter}</div>
@@ -1225,21 +1281,21 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
           {open === 'template' ? <ChevronDown className="w-4 h-4 text-gray-400 rotate-180" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
         </button>
         {open === 'template' && (
-          <div className="mt-4 bg-[#FFF8F0] rounded-xl p-4 text-sm text-[#3D2B1F] border border-[#F5E6D3] space-y-2">
+          <div className="mt-4 bg-[#FBF4E9] rounded-xl p-4 text-sm text-[#3E4743] border border-[#F3E4CD] space-y-2">
             <div className="font-bold">Objet : Votre catalogue Louvat Box — {currentQuarter}</div>
-            <div className="text-xs text-[#A0856B] italic border-b border-[#F5E6D3] pb-2">
-              Les champs en <span className="text-[#8B4513] font-semibold not-italic">orange</span> sont remplis automatiquement avec les données de chaque CE.
+            <div className="text-xs text-[#8A8E89] italic border-b border-[#F3E4CD] pb-2">
+              Les champs en <span className="text-[#5C6B65] font-semibold not-italic">orange</span> sont remplis automatiquement avec les données de chaque CE.
             </div>
             <div className="pt-1 space-y-2">
-              <p>Bonjour <strong className="text-[#8B4513]">[Prénom du responsable]</strong>,</p>
+              <p>Bonjour <strong className="text-[#5C6B65]">[Prénom du responsable]</strong>,</p>
               <p>Nous vous adressons le catalogue <strong>Louvat Box — {currentQuarter}</strong>. Retrouvez nos nouveautés et notre sélection pur beurre à partager avec vos salariés.</p>
-              <p>Code CE de votre entreprise : <strong className="font-mono text-[#8B4513]">[CODE_CE]</strong></p>
+              <p>Code CE de votre entreprise : <strong className="font-mono text-[#5C6B65]">[CODE_CE]</strong></p>
               <p>Ce code donne accès à :</p>
               <ul className="list-disc ml-4 space-y-1">
                 <li>10% offerts par Louvat</li>
-                <li><strong className="text-[#8B4513]">[X]%</strong> pris en charge par votre entreprise</li>
+                <li><strong className="text-[#5C6B65]">[X]%</strong> pris en charge par votre entreprise</li>
               </ul>
-              <p>Lien de commande : <span className="text-[#8B4513] underline">https://box.louvat-biscuits.fr/abonnement?code=<strong>[CODE_CE]</strong></span></p>
+              <p>Lien de commande : <span className="text-[#5C6B65] underline">https://box.louvat-biscuits.fr/abonnement?code=<strong>[CODE_CE]</strong></span></p>
               <p>À bientôt,<br /><strong>L&apos;équipe Louvat</strong></p>
             </div>
           </div>
@@ -1262,7 +1318,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
                   <div className="flex gap-2 mt-1">
                     <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">{ce.code}</span>
                     <span className="text-xs text-gray-400">{ce.abonnes} abonnés</span>
-                    <span className="text-xs text-[#8B4513] bg-[#F5E6D3] px-2 py-0.5 rounded">Employeur {ce.employer_pct}%</span>
+                    <span className="text-xs text-[#5C6B65] bg-[#F3E4CD] px-2 py-0.5 rounded">Employeur {ce.employer_pct}%</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -1276,7 +1332,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
                   <button
                     onClick={() => simulateSend(prospect.id)}
                     disabled={isSent || isLoading}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSent ? 'bg-green-50 text-green-600 cursor-default' : isLoading ? 'bg-gray-100 text-gray-400' : 'bg-[#F5E6D3] text-[#8B4513] hover:bg-[#8B4513] hover:text-white'}`}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all ${isSent ? 'bg-green-50 text-green-600 cursor-default' : isLoading ? 'bg-gray-100 text-gray-400' : 'bg-[#F3E4CD] text-[#5C6B65] hover:bg-[#5C6B65] hover:text-white'}`}
                   >
                     {isLoading ? (
                       <span className="animate-spin">⏳</span>
@@ -1289,12 +1345,12 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
                 </div>
               </div>
               {isOpen && (
-                <div className="border-t border-gray-50 bg-[#FFF8F0] px-4 py-4 text-sm text-[#3D2B1F] space-y-2">
-                  <div className="text-xs font-semibold text-[#A0856B] mb-2">
+                <div className="border-t border-gray-50 bg-[#FBF4E9] px-4 py-4 text-sm text-[#3E4743] space-y-2">
+                  <div className="text-xs font-semibold text-[#8A8E89] mb-2">
                     Aperçu de l&apos;email envoyé à {prospect.email}
                   </div>
                   <div className="text-xs text-gray-400 font-medium">Objet : Votre catalogue Louvat Box — {currentQuarter}</div>
-                  <div className="border border-[#F5E6D3] rounded-lg p-3 bg-white space-y-2">
+                  <div className="border border-[#F3E4CD] rounded-lg p-3 bg-white space-y-2">
                     <p>Bonjour <strong>{prenom}</strong>,</p>
                     <p>Nous vous adressons le catalogue <strong>Louvat Box — {currentQuarter}</strong>. Retrouvez nos nouveautés et notre sélection pur beurre à partager avec vos salariés.</p>
                     <p>Code CE de votre entreprise : <strong className="font-mono">{ce.code}</strong></p>
@@ -1303,7 +1359,7 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
                       <li>10% offerts par Louvat</li>
                       <li><strong>{ce.employer_pct}%</strong> pris en charge par {prospect.societe}</li>
                     </ul>
-                    <p>Lien de commande : <span className="text-[#8B4513] underline">https://box.louvat-biscuits.fr/abonnement?code={ce.code}</span></p>
+                    <p>Lien de commande : <span className="text-[#5C6B65] underline">https://box.louvat-biscuits.fr/abonnement?code={ce.code}</span></p>
                     <p>À bientôt,<br /><strong>L&apos;équipe Louvat</strong></p>
                   </div>
                 </div>
@@ -1329,19 +1385,24 @@ function TabProspectus({ prospects, setProspects, codes }: { prospects: Prospect
             <form onSubmit={saveProspect} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Société *</label>
-                <input required value={form.societe ?? ''} onChange={(e) => setForm({ ...form, societe: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input required value={form.societe ?? ''} onChange={(e) => setForm({ ...form, societe: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Responsable CE *</label>
-                <input required value={form.contact ?? ''} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input required value={form.contact ?? ''} onChange={(e) => setForm({ ...form, contact: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]" />
+                <input required type="email" value={form.email ?? ''} onChange={(e) => setForm({ ...form, email: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
               </div>
+              {formError && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl p-3">
+                  <AlertCircle className="w-4 h-4" /> {formError}
+                </div>
+              )}
               <div className="flex gap-3 pt-2">
                 <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-gray-200 text-gray-600 py-3 rounded-xl font-medium hover:bg-gray-50">Annuler</button>
-                <button type="submit" className="flex-1 bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all">{editing ? 'Enregistrer les modifications' : 'Ajouter le contact'}</button>
+                <button type="submit" disabled={saving} className="flex-1 bg-[#3E4743] text-white py-3 rounded-xl font-semibold hover:bg-[#5C6B65] transition-all disabled:opacity-50">{saving ? 'Enregistrement…' : editing ? 'Enregistrer les modifications' : 'Ajouter le contact'}</button>
               </div>
             </form>
           </div>
@@ -1399,7 +1460,7 @@ function TabParametres() {
 
       <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
         <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-          <KeyRound className="w-4 h-4 text-[#8B4513]" /> Changer le mot de passe
+          <KeyRound className="w-4 h-4 text-[#5C6B65]" /> Changer le mot de passe
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -1409,7 +1470,7 @@ function TabParametres() {
                 type={showOld ? 'text' : 'password'}
                 value={oldPwd}
                 onChange={(e) => setOldPwd(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm pr-10 focus:outline-none focus:border-[#8B4513]"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm pr-10 focus:outline-none focus:border-[#5C6B65]"
               />
               <button type="button" onClick={() => setShowOld(!showOld)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                 {showOld ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1423,7 +1484,7 @@ function TabParametres() {
                 type={showNew ? 'text' : 'password'}
                 value={newPwd}
                 onChange={(e) => setNewPwd(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm pr-10 focus:outline-none focus:border-[#8B4513]"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm pr-10 focus:outline-none focus:border-[#5C6B65]"
               />
               <button type="button" onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
                 {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -1437,7 +1498,7 @@ function TabParametres() {
               type={showNew ? 'text' : 'password'}
               value={confirmPwd}
               onChange={(e) => setConfirmPwd(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#8B4513]"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]"
             />
           </div>
 
@@ -1452,7 +1513,7 @@ function TabParametres() {
             </div>
           )}
 
-          <button type="submit" className="w-full bg-[#3D2B1F] text-white py-3 rounded-xl font-semibold hover:bg-[#8B4513] transition-all">
+          <button type="submit" className="w-full bg-[#3E4743] text-white py-3 rounded-xl font-semibold hover:bg-[#5C6B65] transition-all">
             Mettre à jour le mot de passe
           </button>
         </form>
