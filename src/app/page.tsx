@@ -147,20 +147,24 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {featured.map((b) => (
-              <div key={b.id} className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow border border-[#F48F98]/20">
-                {b.badge && (
-                  <span className="inline-block bg-[#F48F98] text-[#3E4743] text-xs font-bold px-2 py-0.5 rounded-full mb-2">
-                    {b.badge}
-                  </span>
-                )}
-                {b.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={b.image} alt={b.name} className="w-full h-20 object-cover rounded-xl mb-3" />
-                ) : (
-                  <div className="text-3xl mb-3">🍪</div>
-                )}
-                <h4 className="font-bold text-[#3E4743] text-sm mb-1" style={{ fontFamily: 'Georgia, serif' }}>{b.name}</h4>
-                <p className="text-[#8A8E89] text-xs">{b.description}</p>
+              <div key={b.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border border-[#F48F98]/20">
+                <div className="relative">
+                  {b.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={b.image} alt={b.name} className="w-full h-32 object-cover" />
+                  ) : (
+                    <div className="w-full h-32 flex items-center justify-center text-3xl bg-[#F3E4CD]">🍪</div>
+                  )}
+                  {b.badge && (
+                    <span className="absolute top-2 left-2 inline-block bg-[#F48F98] text-[#3E4743] text-xs font-bold px-2 py-0.5 rounded-full">
+                      {b.badge}
+                    </span>
+                  )}
+                </div>
+                <div className="p-5">
+                  <h4 className="font-bold text-[#3E4743] text-sm mb-1" style={{ fontFamily: 'Georgia, serif' }}>{b.name}</h4>
+                  <p className="text-[#8A8E89] text-xs">{b.description}</p>
+                </div>
               </div>
             ))}
           </div>
