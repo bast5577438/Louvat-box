@@ -83,7 +83,13 @@ export default function MonComptePage() {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password: pwd });
     setSubmitting(false);
     if (error) {
-      setAuthError(error.message === 'Invalid login credentials' ? 'Email ou mot de passe incorrect.' : error.message);
+      if (error.message === 'Invalid login credentials') {
+        setAuthError('Email ou mot de passe incorrect.');
+      } else if (error.message === 'Email not confirmed' || error.code === 'email_not_confirmed') {
+        setAuthError("Votre adresse email n'est pas encore confirmée. Ouvrez le lien de confirmation reçu par email, puis reconnectez-vous.");
+      } else {
+        setAuthError(error.message);
+      }
     }
   }
 
@@ -110,7 +116,13 @@ export default function MonComptePage() {
     });
     setSubmitting(false);
     if (error) {
-      setAuthError(error.message);
+      if (error.status === 429 || error.code === 'over_email_send_rate_limit' || /rate limit/i.test(error.message)) {
+        setAuthError("Trop d'inscriptions en peu de temps. Merci de patienter quelques minutes avant de réessayer.");
+      } else if (error.message === 'User already registered' || error.code === 'user_already_exists') {
+        setAuthError('Un compte existe déjà avec cette adresse email. Connectez-vous plutôt.');
+      } else {
+        setAuthError(error.message);
+      }
       return;
     }
     if (data.session) {
