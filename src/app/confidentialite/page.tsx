@@ -105,7 +105,7 @@ export default function ConfidentialitePage() {
               <li>La Biscuiterie Louvat (gestion des abonnements, préparation des boxes)</li>
               <li><strong>Supabase</strong> — base de données hébergée en Europe (UE)</li>
               <li><strong>Vercel</strong> — hébergeur du site (serveurs internationaux)</li>
-              <li>Le transporteur (Colissimo / La Poste) — pour la livraison uniquement</li>
+              <li>Le transporteur partenaire — pour la livraison uniquement</li>
               <li>Votre <strong>Comité d'Entreprise</strong> — uniquement la confirmation de l'abonnement et le code utilisé</li>
             </ul>
             <p>

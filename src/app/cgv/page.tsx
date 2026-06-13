@@ -95,7 +95,7 @@ export default function CGVPage() {
         <section className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
           <h2 className="text-lg font-bold text-[#3E4743] mb-4 pb-2 border-b border-[#F3E4CD]">5. Livraison</h2>
           <div className="space-y-3 text-sm leading-relaxed">
-            <p>Les boxes sont expédiées en France métropolitaine uniquement. La livraison est assurée par Colissimo ou transporteur équivalent.</p>
+            <p>Les boxes sont expédiées en France métropolitaine uniquement. La livraison est assurée par un transporteur partenaire.</p>
             <p>Les délais de livraison sont de <strong>3 à 5 jours ouvrés</strong> à compter de l'expédition. Un email de suivi vous est transmis lors de l'expédition.</p>
             <p>En cas d'abonnement via CE, les boxes peuvent être livrées en une ou plusieurs livraisons selon les modalités définies avec l'entreprise partenaire.</p>
           </div>
