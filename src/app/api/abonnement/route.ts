@@ -60,6 +60,7 @@ export async function POST(request: Request) {
   }
 
   await sendOrderNotification({ prenom, nom, email, engagement, box_id, prix, ce_code, selections });
+  await sendCustomerConfirmation({ prenom, nom, email, engagement, box_id, prix, selections });
 
   return NextResponse.json({ abonne: data });
 }
@@ -110,5 +111,79 @@ async function sendOrderNotification(order: {
     });
   } catch (err) {
     console.error('Erreur Resend (notification de commande) :', err);
+  }
+}
+
+/**
+ * Envoie au client un email de bienvenue confirmant son abonnement,
+ * avec le récapitulatif de sa formule.
+ */
+async function sendCustomerConfirmation(order: {
+  prenom?: unknown;
+  nom?: unknown;
+  email: string;
+  engagement?: unknown;
+  box_id?: unknown;
+  prix?: unknown;
+  selections?: unknown;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  const box = boxSizes.find((b) => b.id === order.box_id);
+  const eng = engagements.find((e) => e.id === order.engagement);
+  const selectedBiscuits = Array.isArray(order.selections)
+    ? order.selections
+        .map((id) => biscuits.find((b) => b.id === id)?.name)
+        .filter((name): name is string => Boolean(name))
+    : [];
+  const prenom = typeof order.prenom === 'string' && order.prenom ? order.prenom : '';
+
+  const html = `
+    <div style="font-family: Georgia, serif; max-width: 480px; margin: 0 auto; background: #F3E4CD; padding: 32px 24px;">
+      <h1 style="color: #3E4743; font-size: 22px; margin: 0 0 16px;">Bienvenue chez Louvat Box${prenom ? `, ${prenom}` : ''} !</h1>
+      <p style="color: #3E4743; font-size: 15px; line-height: 1.6;">
+        Merci pour votre confiance. Votre abonnement a bien été enregistré, voici le récapitulatif :
+      </p>
+      <table style="width: 100%; font-size: 14px; color: #3E4743; border-collapse: collapse; margin: 16px 0;">
+        <tr><td style="padding: 6px 0; font-weight: bold;">Formule</td><td style="padding: 6px 0; text-align: right;">${box ? box.label : order.box_id ?? '-'}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold;">Engagement</td><td style="padding: 6px 0; text-align: right;">${eng ? eng.label : order.engagement ?? '-'}</td></tr>
+        <tr><td style="padding: 6px 0; font-weight: bold;">Prix</td><td style="padding: 6px 0; text-align: right;">${typeof order.prix === 'number' ? `${order.prix} € / mois` : '-'}</td></tr>
+        ${selectedBiscuits.length ? `<tr><td style="padding: 6px 0; font-weight: bold; vertical-align: top;">Biscuits choisis</td><td style="padding: 6px 0; text-align: right;">${selectedBiscuits.join(', ')}</td></tr>` : ''}
+      </table>
+      <p style="color: #3E4743; font-size: 15px; line-height: 1.6;">
+        Vous recevrez un email de confirmation à chaque expédition de votre box, avec le suivi de votre colis.
+      </p>
+      <p style="color: #3E4743; font-size: 15px; line-height: 1.6; margin-top: 24px;">
+        À très vite,<br>
+        <strong>L'équipe Louvat</strong>
+      </p>
+    </div>
+  `;
+
+  const text = [
+    `Bienvenue chez Louvat Box${prenom ? `, ${prenom}` : ''} !`,
+    '',
+    'Merci pour votre confiance. Votre abonnement a bien été enregistré :',
+    `- Formule : ${box ? box.label : order.box_id ?? '-'}`,
+    `- Engagement : ${eng ? eng.label : order.engagement ?? '-'}`,
+    `- Prix : ${typeof order.prix === 'number' ? `${order.prix} € / mois` : '-'}`,
+    selectedBiscuits.length ? `- Biscuits choisis : ${selectedBiscuits.join(', ')}` : null,
+    '',
+    'Vous recevrez un email de confirmation à chaque expédition de votre box, avec le suivi de votre colis.',
+    '',
+    "À très vite, l'équipe Louvat",
+  ].filter((line): line is string => Boolean(line));
+
+  try {
+    await resend.emails.send({
+      from: getFromEmail(),
+      to: resolveRecipient(order.email),
+      subject: 'Bienvenue chez Louvat Box — votre abonnement est confirmé',
+      html,
+      text: text.join('\n'),
+    });
+  } catch (err) {
+    console.error('Erreur Resend (email de bienvenue client) :', err);
   }
 }
