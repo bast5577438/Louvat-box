@@ -100,7 +100,7 @@ export default function MonComptePage() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password: pwd,
       options: {
@@ -111,6 +111,12 @@ export default function MonComptePage() {
     setSubmitting(false);
     if (error) {
       setAuthError(error.message);
+      return;
+    }
+    if (data.session) {
+      // La confirmation par email est désactivée côté Supabase : le compte
+      // est immédiatement actif et connecté (onAuthStateChange bascule
+      // automatiquement vers le tableau de bord).
       return;
     }
     setAuthMsg('Votre compte a été créé ! Vérifiez votre boîte mail pour confirmer votre adresse, puis connectez-vous ci-dessous.');
