@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
-import { getSupabaseAdminClient } from '@/lib/supabase';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 import { biscuits } from '@/lib/data';
 
 /**
  * Catalogue de biscuits (table `produits`) pour les pages clientes
  * (/box, /abonnement). Lecture publique, pas d'authentification requise.
+ *
+ * On lit avec la clé publique (anon) car la table `produits` est en
+ * lecture publique (RLS) : pas besoin de la clé secrète service_role
+ * pour un simple catalogue.
  *
  * Si la base n'est pas joignable (ex : variables Supabase non configurées
  * en local, ou incident côté base), on renvoie le catalogue intégré
@@ -13,7 +17,7 @@ import { biscuits } from '@/lib/data';
  */
 export async function GET() {
   try {
-    const supabase = getSupabaseAdminClient();
+    const supabase = getSupabaseBrowserClient();
     const { data, error } = await supabase.from('produits').select('*').order('id', { ascending: true });
 
     if (error || !data || data.length === 0) {
