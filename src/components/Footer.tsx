@@ -50,8 +50,8 @@ export default function Footer() {
             Maison de qualité depuis 1954. Biscuits pur beurre artisanaux, fabriqués au pied des Alpes.
           </p>
           <div className="flex gap-3 mt-4">
-            <a href="https://www.instagram.com" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-[#F48F98] transition-colors"><InstagramIcon className="w-5 h-5" /></a>
-            <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-[#F48F98] transition-colors"><FacebookIcon className="w-5 h-5" /></a>
+            <a href="https://www.instagram.com/biscuiterie_louvat_1954/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="hover:text-[#F48F98] transition-colors"><InstagramIcon className="w-5 h-5" /></a>
+            <a href="https://www.facebook.com/biscuiterielouvat1954" target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="hover:text-[#F48F98] transition-colors"><FacebookIcon className="w-5 h-5" /></a>
             <Link href="/contact" aria-label="Contact" className="hover:text-[#F48F98] transition-colors"><Mail className="w-5 h-5" /></Link>
           </div>
         </div>
