@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Building2, Users, Percent, CheckCircle, ChevronDown, ChevronUp, ArrowRight, Mail, AlertTriangle } from 'lucide-react';
 import { CONTACT_EMAIL } from '@/lib/contact';
-import { boxSizes } from '@/lib/data';
+import { BOX_PRICE } from '@/lib/data';
 
 const FAQ = [
   { q: 'Comment fonctionne le financement tripartite ?', a: "Le prix de la box est partagé entre trois parties : Louvat offre systématiquement 10%, l'employeur choisit un pourcentage à sa convenance (ex: 30%), et le salarié paie le solde — prélevé directement par SEPA." },
@@ -22,7 +22,7 @@ export default function CEPage() {
   const [sendError, setSendError] = useState(false);
   const [ceForm, setCeForm] = useState({ societe: '', contact: '', email: '', tel: '', effectif: '' });
 
-  const basePrice = boxSizes[0].prices.annuel;
+  const basePrice = BOX_PRICE.annuel;
   const louvat = basePrice * 0.1;
   const employer = basePrice * (employerPct / 100);
   const employee = Math.max(0, basePrice - louvat - employer);
@@ -69,7 +69,7 @@ export default function CEPage() {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-bold text-[#3E4743] mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+          <h2 className="text-3xl font-bold text-[#3E4743] mb-3">
             Demande envoyée !
           </h2>
           <p className="text-[#5C6B65] mb-6">
@@ -105,7 +105,7 @@ export default function CEPage() {
       <section className="bg-[#3E4743] text-white py-16">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <Building2 className="w-14 h-14 text-[#F48F98] mx-auto mb-4" />
-          <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Louvat Box pour<br />votre Comité d&apos;Entreprise
           </h1>
           <p className="text-[#E3D4BD] text-lg max-w-2xl mx-auto mb-8">
@@ -123,7 +123,7 @@ export default function CEPage() {
 
       {/* Avantages */}
       <section className="max-w-5xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-10" style={{ fontFamily: 'Georgia, serif' }}>
+        <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-10">
           Pourquoi choisir Louvat CE ?
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -136,7 +136,7 @@ export default function CEPage() {
               <div className="inline-flex items-center justify-center w-14 h-14 bg-[#F3E4CD] rounded-2xl text-[#5C6B65] mb-4">
                 {item.icon}
               </div>
-              <h3 className="font-bold text-[#3E4743] mb-2" style={{ fontFamily: 'Georgia, serif' }}>{item.title}</h3>
+              <h3 className="font-bold text-[#3E4743] mb-2">{item.title}</h3>
               <p className="text-[#5C6B65] text-sm">{item.desc}</p>
             </div>
           ))}
@@ -146,7 +146,7 @@ export default function CEPage() {
       {/* Simulateur */}
       <section id="comment" className="bg-[#F3E4CD] py-16">
         <div className="max-w-3xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+          <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-3">
             Simulateur de prix
           </h2>
           <p className="text-center text-[#5C6B65] mb-8">Ajustez le pourcentage employeur pour voir ce que paye le salarié.</p>
@@ -173,7 +173,7 @@ export default function CEPage() {
 
             <div className="space-y-3">
               <div className="bg-[#FBF4E9] rounded-xl p-4">
-                <div className="text-xs text-[#8A8E89] uppercase tracking-wider mb-1">Prix de base (Box Découverte, engagement annuel)</div>
+                <div className="text-xs text-[#8A8E89] uppercase tracking-wider mb-1">Prix de base (Box du mois, engagement annuel)</div>
                 <div className="flex justify-between items-center">
                   <span className="text-[#3E4743] font-medium">Prix catalogue</span>
                   <span className="font-bold text-[#3E4743]">{basePrice.toFixed(2)}€ HT</span>
@@ -200,7 +200,7 @@ export default function CEPage() {
 
               <div className="bg-[#3E4743] text-white rounded-xl p-4 flex justify-between items-center">
                 <div>
-                  <div className="font-bold text-lg" style={{ fontFamily: 'Georgia, serif' }}>Le salarié paie</div>
+                  <div className="font-bold text-lg">Le salarié paie</div>
                   <div className="text-[#E3D4BD] text-xs">Prélevé par SEPA</div>
                 </div>
                 <div className="text-3xl font-bold text-[#F48F98]">{employee.toFixed(2)}€ HT</div>
@@ -216,7 +216,7 @@ export default function CEPage() {
 
       {/* Comment ça marche */}
       <section className="max-w-5xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-10" style={{ fontFamily: 'Georgia, serif' }}>
+        <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-10">
           Comment ça marche ?
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
@@ -230,7 +230,7 @@ export default function CEPage() {
               <div className="w-12 h-12 bg-[#5C6B65] text-white rounded-full flex items-center justify-center text-lg font-bold mx-auto mb-3">
                 {item.n}
               </div>
-              <h4 className="font-bold text-[#3E4743] mb-2" style={{ fontFamily: 'Georgia, serif' }}>{item.title}</h4>
+              <h4 className="font-bold text-[#3E4743] mb-2">{item.title}</h4>
               <p className="text-[#5C6B65] text-sm">{item.desc}</p>
             </div>
           ))}
@@ -240,7 +240,7 @@ export default function CEPage() {
       {/* FAQ */}
       <section className="bg-[#F3E4CD] py-16">
         <div className="max-w-3xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-10" style={{ fontFamily: 'Georgia, serif' }}>
+          <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-10">
             Questions fréquentes
           </h2>
           <div className="space-y-3">
@@ -266,7 +266,7 @@ export default function CEPage() {
 
       {/* Formulaire inscription */}
       <section id="inscription" className="max-w-2xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+        <h2 className="text-3xl font-bold text-center text-[#3E4743] mb-3">
           Inscrire mon CE
         </h2>
         <p className="text-center text-[#5C6B65] mb-8">

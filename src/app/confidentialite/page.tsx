@@ -18,7 +18,7 @@ export default function ConfidentialitePage() {
           </div>
           <div className="flex items-center gap-3">
             <Cookie className="w-6 h-6 text-[#F48F98]" />
-            <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>Politique de confidentialité</h1>
+            <h1 className="text-2xl font-bold">Politique de confidentialité</h1>
           </div>
           <p className="text-[#E3D4BD] text-sm mt-2">Dernière mise à jour : mai 2026 — Conforme au RGPD</p>
         </div>

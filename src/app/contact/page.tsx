@@ -38,7 +38,7 @@ export default function ContactPage() {
           <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="w-10 h-10 text-green-600" />
           </div>
-          <h2 className="text-3xl font-bold text-[#3E4743] mb-3" style={{ fontFamily: 'Georgia, serif' }}>
+          <h2 className="text-3xl font-bold text-[#3E4743] mb-3">
             Message envoyé !
           </h2>
           <p className="text-[#5C6B65]">
@@ -56,7 +56,7 @@ export default function ContactPage() {
       <section className="bg-[#3E4743] text-white py-16">
         <div className="max-w-3xl mx-auto px-4 text-center">
           <Mail className="w-14 h-14 text-[#F48F98] mx-auto mb-4" />
-          <h1 className="text-4xl md:text-5xl font-bold mb-4" style={{ fontFamily: 'Georgia, serif' }}>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Contactez-nous
           </h1>
           <p className="text-[#E3D4BD] text-lg max-w-2xl mx-auto">

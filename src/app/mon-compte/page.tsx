@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Package, Pause, X, ChevronRight, CheckCircle, LogOut, Lock, Eye, EyeOff, Info, Mail, User as UserIcon } from 'lucide-react';
-import { biscuits, boxSizes } from '@/lib/data';
+import { type Biscuit } from '@/lib/data';
 import { getSupabaseBrowserClient, type Abonne } from '@/lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
@@ -30,6 +30,15 @@ export default function MonComptePage() {
   /* ── État du tableau de bord ── */
   const [tab, setTab] = useState<'abonnement' | 'selection' | 'historique'>('abonnement');
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [boxDuMois, setBoxDuMois] = useState<Biscuit[]>([]);
+
+  /* Contenu de la box du mois (lecture seule — curatée par la gérante, plus de sélection par client) */
+  useEffect(() => {
+    fetch('/api/produits')
+      .then((res) => res.json())
+      .then((data) => setBoxDuMois((data.produits ?? []).filter((p: Biscuit) => p.mois_actif)))
+      .catch(() => setBoxDuMois([]));
+  }, []);
 
   /* Récupère la session au chargement + écoute les changements (login/logout) */
   useEffect(() => {
@@ -66,10 +75,6 @@ export default function MonComptePage() {
       });
   }, [user, supabase]);
 
-  const boxSize = abonne?.box_id ? boxSizes.find((b) => b.id === abonne.box_id) : undefined;
-  const myBiscuits = (abonne?.selections ?? [])
-    .map((id) => biscuits.find((b) => b.id === id))
-    .filter((b): b is typeof biscuits[number] => !!b);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -161,7 +166,7 @@ export default function MonComptePage() {
         <div className="max-w-sm w-full">
           <div className="text-center mb-6">
             <div className="w-14 h-14 bg-[#3E4743] rounded-full flex items-center justify-center text-2xl mx-auto mb-3">🍪</div>
-            <h1 className="text-2xl font-bold text-[#3E4743]" style={{ fontFamily: 'Georgia, serif' }}>Mon espace Louvat</h1>
+            <h1 className="text-2xl font-bold text-[#3E4743]">Mon espace Louvat</h1>
             <p className="text-[#8A8E89] text-sm mt-1">
               {mode === 'login' ? 'Connectez-vous pour gérer votre abonnement' : 'Créez votre espace abonné'}
             </p>
@@ -274,7 +279,7 @@ export default function MonComptePage() {
   /* ── Tableau de bord ── */
   const tabs = [
     { id: 'abonnement', label: 'Mon abonnement' },
-    { id: 'selection', label: 'Mes biscuits' },
+    { id: 'selection', label: 'Ma box du mois' },
     { id: 'historique', label: 'Historique' },
   ] as const;
 
@@ -286,7 +291,7 @@ export default function MonComptePage() {
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 bg-[#5C6B65] rounded-full flex items-center justify-center text-2xl">🍪</div>
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>
+              <h1 className="text-2xl font-bold">
                 {abonne?.prenom ? `Bonjour ${abonne.prenom} !` : 'Bonjour !'}
               </h1>
               <p className="text-[#E3D4BD] text-sm truncate">{user.email}</p>
@@ -313,12 +318,12 @@ export default function MonComptePage() {
           /* ── Pas encore d'abonnement ── */
           <div className="bg-white rounded-3xl border border-[#F3E4CD] p-10 text-center shadow-sm">
             <div className="text-4xl mb-4">📦</div>
-            <h2 className="text-xl font-bold text-[#3E4743] mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+            <h2 className="text-xl font-bold text-[#3E4743] mb-2">
               Vous n&apos;avez pas encore de box en cours
             </h2>
-            <p className="text-[#5C6B65] mb-6">Composez votre première box et choisissez votre formule pour démarrer votre abonnement.</p>
+            <p className="text-[#5C6B65] mb-6">Découvrez la box du mois et abonnez-vous avec votre code CE pour démarrer.</p>
             <Link href="/box" className="inline-flex items-center gap-2 bg-[#3E4743] text-white px-8 py-3 rounded-full font-semibold hover:bg-[#5C6B65] transition-all">
-              Composer ma box <ChevronRight className="w-4 h-4" />
+              Voir la box du mois <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
@@ -341,7 +346,7 @@ export default function MonComptePage() {
               <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {[
-                    { icon: <Package className="w-5 h-5" />, label: 'Ma box', val: boxSize?.label ?? '—' },
+                    { icon: <Package className="w-5 h-5" />, label: 'Ma box', val: abonne.type_abonnement === 'entreprise' ? `Box du mois × ${abonne.quantite ?? 1}` : 'Box du mois' },
                     { icon: <Info className="w-5 h-5" />, label: 'Formule', val: abonne.engagement === 'annuel' ? 'Engagement annuel' : abonne.engagement === 'trimestriel' ? 'Engagement trimestriel' : 'Sans engagement' },
                     { icon: <CheckCircle className="w-5 h-5" />, label: 'Tarif', val: abonne.prix ? `${abonne.prix.toFixed(2)}€ HT/mois` : '—' },
                   ].map((card) => (
@@ -360,22 +365,8 @@ export default function MonComptePage() {
 
                 {/* Actions */}
                 <div className="bg-white rounded-2xl border border-[#F3E4CD] p-6 shadow-sm">
-                  <h3 className="font-bold text-[#3E4743] mb-4" style={{ fontFamily: 'Georgia, serif' }}>Gérer mon abonnement</h3>
+                  <h3 className="font-bold text-[#3E4743] mb-4">Gérer mon abonnement</h3>
                   <div className="space-y-3">
-                    <Link
-                      href="/box"
-                      className="w-full flex items-center justify-between p-4 rounded-xl bg-[#F3E4CD] hover:bg-[#EDD5B8] transition-all text-left"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Package className="w-4 h-4 text-[#5C6B65]" />
-                        <div>
-                          <div className="font-semibold text-[#3E4743] text-sm">Modifier ma sélection</div>
-                          <div className="text-xs text-[#8A8E89]">Changer les biscuits de ma prochaine box</div>
-                        </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-[#5C6B65]" />
-                    </Link>
-
                     {abonne.statut === 'actif' ? (
                       <button
                         onClick={() => updateStatut('pause')}
@@ -441,32 +432,29 @@ export default function MonComptePage() {
               </div>
             )}
 
-            {/* Onglet Sélection */}
+            {/* Onglet Box du mois */}
             {tab === 'selection' && (
               <div>
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-bold text-[#3E4743] text-lg" style={{ fontFamily: 'Georgia, serif' }}>
-                    Ma sélection actuelle ({myBiscuits.length} biscuits)
+                  <h3 className="font-bold text-[#3E4743] text-lg">
+                    Contenu de la box de ce mois
                   </h3>
-                  <Link href="/box" className="bg-[#5C6B65] text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-[#3E4743] transition-all">
-                    Modifier →
-                  </Link>
                 </div>
-                {myBiscuits.length > 0 ? (
+                {boxDuMois.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-                    {myBiscuits.map((b, i) => (
-                      <div key={`${b.id}-${i}`} className="bg-white rounded-2xl p-4 border border-[#F3E4CD] text-center shadow-sm">
+                    {boxDuMois.map((b) => (
+                      <div key={b.id} className="bg-white rounded-2xl p-4 border border-[#F3E4CD] text-center shadow-sm">
                         <div className="text-2xl mb-2">🍪</div>
-                        <div className="font-semibold text-[#3E4743] text-xs" style={{ fontFamily: 'Georgia, serif' }}>{b.name}</div>
-                        <div className="text-[#8A8E89] text-xs mt-1">{b.category}</div>
+                        <div className="font-semibold text-[#3E4743] text-xs">{b.name}</div>
+                        <div className="text-[#8A8E89] text-xs mt-1">500g</div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-[#8A8E89] mb-6">Aucune sélection enregistrée pour le moment.</div>
+                  <div className="text-center py-8 text-[#8A8E89] mb-6">La sélection du mois n&apos;a pas encore été publiée.</div>
                 )}
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-                  Les modifications s&apos;appliquent à votre prochaine box. Date limite de modification : 7 jours avant la livraison.
+                  La box est désormais identique pour tous les abonnés, curatée chaque mois par la biscuiterie — plus de sélection personnalisée à modifier.
                 </div>
               </div>
             )}
@@ -474,7 +462,7 @@ export default function MonComptePage() {
             {/* Onglet Historique */}
             {tab === 'historique' && (
               <div>
-                <h3 className="font-bold text-[#3E4743] text-lg mb-6" style={{ fontFamily: 'Georgia, serif' }}>Historique des livraisons</h3>
+                <h3 className="font-bold text-[#3E4743] text-lg mb-6">Historique des livraisons</h3>
                 <div className="text-center py-12 text-[#8A8E89]">
                   Aucune livraison enregistrée pour le moment. Votre historique apparaîtra ici après votre première box.
                 </div>

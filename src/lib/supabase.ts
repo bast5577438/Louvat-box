@@ -66,7 +66,11 @@ export type Abonne = {
   formule: string | null;
   box_id: string | null;
   engagement: string | null;
+  type_abonnement: 'entreprise' | 'ce-salarie' | null;
+  quantite: number | null;
   prix: number | null;
+  louvat_discount: number | null;
+  employer_discount: number | null;
   ce_code: string | null;
   selections: number[] | null;
   statut: 'actif' | 'pause' | 'résilié';

@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Requête invalide.' }, { status: 400 });
   }
 
-  const { name, prenom, email, formule, box_id, engagement, prix, ce_code, statut, selections } = body;
+  const { name, prenom, email, formule, box_id, engagement, type_abonnement, quantite, prix, louvat_discount, employer_discount, ce_code, statut, selections } = body;
   if (!email || typeof email !== 'string') {
     return NextResponse.json({ error: "L'email est requis." }, { status: 400 });
   }
@@ -63,10 +63,14 @@ export async function POST(request: Request) {
       name: name ?? null,
       prenom: prenom ?? null,
       email,
-      formule: formule ?? null,
-      box_id: box_id ?? null,
+      formule: formule ?? 'box-du-mois',
+      box_id: box_id ?? 'box-du-mois',
       engagement: engagement ?? null,
+      type_abonnement: type_abonnement ?? 'ce-salarie',
+      quantite: quantite ?? 1,
       prix: prix ?? null,
+      louvat_discount: louvat_discount ?? 0,
+      employer_discount: employer_discount ?? 0,
       ce_code: ce_code ?? null,
       statut: statut ?? 'actif',
       selections: selections ?? [],

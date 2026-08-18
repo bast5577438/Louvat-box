@@ -42,7 +42,7 @@ type Props = {
 function RecapBlock({ recap }: { recap: RecapInfo }) {
   return (
     <div className="bg-[#F3E4CD] rounded-2xl p-5 my-6">
-      <div className="font-bold text-[#3E4743] mb-3" style={{ fontFamily: 'Georgia, serif' }}>Récapitulatif de votre abonnement</div>
+      <div className="font-bold text-[#3E4743] mb-3">Récapitulatif de votre abonnement</div>
       <div className="space-y-1 text-sm">
         <div className="flex justify-between"><span className="text-[#5C6B65]">Engagement</span><span className="font-medium text-[#3E4743]">{recap.engagementLabel}</span></div>
         <div className="flex justify-between"><span className="text-[#5C6B65]">Box</span><span className="font-medium text-[#3E4743]">{recap.boxLabel}</span></div>

@@ -8,6 +8,7 @@ export type Biscuit = {
   image?: string;
   badge?: string;
   available?: boolean;
+  mois_actif?: boolean;
 };
 
 export type EngagementId = "sans-engagement" | "trimestriel" | "annuel";
@@ -21,11 +22,11 @@ export type Engagement = {
 };
 
 export const biscuits: Biscuit[] = [
-  { id: 1,  name: "Palets pur beurre",             description: "La recette originale depuis 1954, pur beurre de qualité",              category: "Classiques",      allergens: ["gluten", "lait", "œufs"],           price: 4.50, available: true,
+  { id: 1,  name: "Palets pur beurre",             description: "La recette originale depuis 1954, pur beurre de qualité",              category: "Classiques",      allergens: ["gluten", "lait", "œufs"],           price: 4.50, available: true, mois_actif: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/DSC_2875_300x.jpg" },
-  { id: 2,  name: "Sablés pur beurre",             description: "Fondants en bouche, fabriqués avec du beurre sélectionné",             category: "Classiques",      allergens: ["gluten", "lait"],                   price: 5.00, available: true,
+  { id: 2,  name: "Sablés pur beurre",             description: "Fondants en bouche, fabriqués avec du beurre sélectionné",             category: "Classiques",      allergens: ["gluten", "lait"],                   price: 5.00, available: true, mois_actif: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/f76bd299-4ee6-436a-a635-f39cb194b200_a4b4a641-39b4-4117-a326-5ab4f51a95a8_300x.jpg" },
-  { id: 3,  name: "Lunettes pur beurre",           description: "Sablés en forme de lunettes, garnis de confiture",                    category: "Classiques",      allergens: ["gluten", "lait", "œufs"],           price: 5.90, available: true,  badge: "Favori",
+  { id: 3,  name: "Lunettes pur beurre",           description: "Sablés en forme de lunettes, garnis de confiture",                    category: "Classiques",      allergens: ["gluten", "lait", "œufs"],           price: 5.90, available: true,  badge: "Favori", mois_actif: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/DSC_9253_1f858edf-e60d-41e1-910d-da5450fdfebe_300x.jpg" },
   { id: 4,  name: "Financiers pur beurre",         description: "Moelleux aux amandes, beurre noisette, recette du Champion du Monde", category: "Moelleux",        allergens: ["gluten", "lait", "fruits à coque"], price: 5.50, available: true,
     image: "https://biscuiterie-louvat.com/cdn/shop/files/DSC_7454_86c665c3-860d-45f4-938b-689b762f38da_300x.jpg" },
@@ -69,40 +70,20 @@ export const engagements: Engagement[] = [
   },
 ];
 
-export type BoxSize = {
-  id: string;
-  label: string;
-  items: number;
-  weight: string;
-  description: string;
-  prices: Record<EngagementId, number>;
-  popular?: boolean;
+// La box unique mensuelle : 3 produits x 500g, curatés chaque mois par la
+// gérante (voir `produits.mois_actif` côté admin). Plus de choix de taille
+// ni de biscuits pour le client — même tarif que l'ancienne Box Découverte
+// (identique en poids/nombre de produits, rien à recalculer).
+export const BOX_PRICE: Record<EngagementId, number> = {
+  annuel: 30,
+  trimestriel: 35,
+  "sans-engagement": 40,
 };
 
-export const boxSizes: BoxSize[] = [
-  {
-    id: "decouverte",
-    label: "Box Découverte",
-    items: 3,
-    weight: "1,5 kg",
-    description: "3 références au choix",
-    prices: { annuel: 30, trimestriel: 35, "sans-engagement": 40 },
-  },
-  {
-    id: "gourmande",
-    label: "Box Gourmande",
-    items: 6,
-    weight: "3 kg",
-    description: "6 références au choix",
-    prices: { annuel: 65, trimestriel: 70, "sans-engagement": 75 },
-    popular: true,
-  },
-  {
-    id: "prestige",
-    label: "Box Prestige",
-    items: 10,
-    weight: "5 kg",
-    description: "10 références au choix",
-    prices: { annuel: 100, trimestriel: 105, "sans-engagement": 110 },
-  },
-];
+export const BOX_POIDS_GRAMMES = 1500; // 3 produits x 500g
+export const PORTION_GRAMMES_PAR_PERSONNE = 120; // portion partagée en salle de pause — ajustable
+
+/** Estimation du nombre de personnes pour lesquelles `quantite` box conviennent (arrondi à l'inférieur, prudent). */
+export function estimerPersonnes(quantite: number): number {
+  return Math.floor((quantite * BOX_POIDS_GRAMMES) / PORTION_GRAMMES_PAR_PERSONNE);
+}

@@ -9,7 +9,7 @@ import {
   CheckCircle, X, Eye, EyeOff, Send, LogOut,
   ChevronDown, AlertCircle, Settings, KeyRound, Info
 } from 'lucide-react';
-import { boxSizes, type Biscuit } from '@/lib/data';
+import { type Biscuit } from '@/lib/data';
 import type { Abonne } from '@/lib/supabase';
 
 const DEFAULT_ADMIN_PASSWORD = 'louvat1954';
@@ -95,6 +95,19 @@ export default function AdminPage() {
     }
   }, []);
 
+  /* Montant dû par employeur, par code CE (table `abonnes`, agrégé côté API) */
+  const [ceBilling, setCeBilling] = useState<Record<string, { total: number; abonnes: number }>>({});
+
+  const fetchCeBilling = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/ce-billing', { headers: { 'x-admin-password': getAdminPassword() } });
+      const json = await res.json();
+      if (res.ok) setCeBilling(json.billing ?? {});
+    } catch {
+      // discret : la facturation n'est qu'un affichage complémentaire, pas bloquant
+    }
+  }, []);
+
   /* Espaces clients (table `abonnes` sur Supabase) */
   const [abonnes, setAbonnes] = useState<Abonne[]>([]);
   const [abonnesLoading, setAbonnesLoading] = useState(false);
@@ -147,8 +160,9 @@ export default function AdminPage() {
       fetchProduits();
       fetchCeCodes();
       fetchProspects();
+      fetchCeBilling();
     }
-  }, [loggedIn, fetchAbonnes, fetchProduits, fetchCeCodes, fetchProspects]);
+  }, [loggedIn, fetchAbonnes, fetchProduits, fetchCeCodes, fetchProspects, fetchCeBilling]);
 
   function login(e: React.FormEvent) {
     e.preventDefault();
@@ -284,6 +298,7 @@ export default function AdminPage() {
             onRefresh={fetchCeCodes}
             getAdminPassword={getAdminPassword}
             prospects={prospects}
+            billing={ceBilling}
           />
         )}
         {tab === 'abonnes' && (
@@ -336,7 +351,9 @@ function TabProduits({
   const [toggleError, setToggleError] = useState('');
 
   const MAX_DISPONIBLES = 10;
+  const MAX_BOX_DU_MOIS = 3;
   const availableCount = produits.filter((p) => p.available !== false).length;
+  const moisActifCount = produits.filter((p) => p.mois_actif).length;
 
   async function toggleAvailable(b: Biscuit) {
     const nextAvailable = !(b.available !== false);
@@ -350,6 +367,30 @@ function TabProduits({
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
         body: JSON.stringify({ id: b.id, available: nextAvailable }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setToggleError(json.error || 'Erreur lors de la mise à jour.');
+        return;
+      }
+      onRefresh();
+    } catch {
+      setToggleError('Erreur lors de la mise à jour. Merci de réessayer.');
+    }
+  }
+
+  async function toggleMoisActif(b: Biscuit) {
+    const next = !b.mois_actif;
+    if (next && moisActifCount >= MAX_BOX_DU_MOIS) {
+      setToggleError(`La box du mois contient déjà ${MAX_BOX_DU_MOIS} produits. Retirez-en un avant d'en ajouter un nouveau.`);
+      return;
+    }
+    setToggleError('');
+    try {
+      const res = await fetch('/api/admin/produits', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-password': getAdminPassword() },
+        body: JSON.stringify({ id: b.id, mois_actif: next }),
       });
       const json = await res.json();
       if (!res.ok) {
@@ -434,6 +475,10 @@ function TabProduits({
             <span className={availableCount >= MAX_DISPONIBLES ? 'text-red-500 font-semibold' : ''}>
               {availableCount}/{MAX_DISPONIBLES} disponibles
             </span>
+            {' · '}
+            <span className={moisActifCount >= MAX_BOX_DU_MOIS ? 'text-[#5C6B65] font-semibold' : ''}>
+              {moisActifCount}/{MAX_BOX_DU_MOIS} dans la box de ce mois
+            </span>
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -487,13 +532,22 @@ function TabProduits({
                   </button>
                 </div>
               </div>
-              <button
-                onClick={() => toggleAvailable(b)}
-                className={`mt-2 flex items-center gap-1.5 text-xs font-medium transition-colors ${b.available !== false ? 'text-green-600' : 'text-red-400'}`}
-              >
-                {b.available !== false ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
-                {b.available !== false ? 'Disponible en box' : 'Indisponible'}
-              </button>
+              <div className="flex items-center gap-4 mt-2">
+                <button
+                  onClick={() => toggleAvailable(b)}
+                  className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${b.available !== false ? 'text-green-600' : 'text-red-400'}`}
+                >
+                  {b.available !== false ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                  {b.available !== false ? 'Disponible en box' : 'Indisponible'}
+                </button>
+                <button
+                  onClick={() => toggleMoisActif(b)}
+                  className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${b.mois_actif ? 'text-[#5C6B65]' : 'text-gray-300'}`}
+                >
+                  {b.mois_actif ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+                  Box de ce mois
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -583,6 +637,7 @@ function TabCE({
   onRefresh,
   getAdminPassword,
   prospects,
+  billing,
 }: {
   codes: CECode[];
   loading: boolean;
@@ -590,6 +645,7 @@ function TabCE({
   onRefresh: () => void;
   getAdminPassword: () => string;
   prospects: Prospect[];
+  billing: Record<string, { total: number; abonnes: number }>;
 }) {
   const [editing, setEditing] = useState<CECode | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -715,6 +771,11 @@ function TabCE({
                     <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-full font-medium">Louvat : 10%</span>
                     <span className="bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">Salarié : {100 - ce.employer_pct - 10}%</span>
                     <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{ce.abonnes} abonné{ce.abonnes > 1 ? 's' : ''}</span>
+                    {billing[ce.code] && billing[ce.code].total > 0 && (
+                      <span className="bg-[#3E4743] text-white px-2 py-0.5 rounded-full font-semibold">
+                        À facturer ce mois : {billing[ce.code].total.toFixed(2)}€
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -959,6 +1020,7 @@ function TabAbonnes({
             <tr>
               <th className="text-left px-4 py-3 font-semibold text-gray-600">Client</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Formule</th>
+              <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden md:table-cell">Type</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden sm:table-cell">Prix</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600 hidden lg:table-cell">CE</th>
               <th className="text-left px-4 py-3 font-semibold text-gray-600">Statut</th>
@@ -967,7 +1029,6 @@ function TabAbonnes({
           </thead>
           <tbody>
             {filtered.map((s, i) => {
-              const box = boxSizes.find((b) => b.id === s.box_id);
               return (
                 <tr key={s.id} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${i % 2 === 0 ? '' : 'bg-gray-50/30'}`}>
                   <td className="px-4 py-3">
@@ -976,7 +1037,14 @@ function TabAbonnes({
                   </td>
                   <td className="px-4 py-3 hidden md:table-cell">
                     <div className="text-gray-700">{s.engagement ? ENGAGEMENT_LABELS[s.engagement] ?? s.engagement : '—'}</div>
-                    <div className="text-gray-400 text-xs">{box?.label ?? '—'}</div>
+                    <div className="text-gray-400 text-xs">
+                      Box du mois{s.type_abonnement === 'entreprise' && s.quantite ? ` × ${s.quantite}` : ''}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 hidden md:table-cell">
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.type_abonnement === 'entreprise' ? 'bg-purple-50 text-purple-700' : 'bg-teal-50 text-teal-700'}`}>
+                      {s.type_abonnement === 'entreprise' ? 'Entreprise' : 'Salarié CE'}
+                    </span>
                   </td>
                   <td className="px-4 py-3 hidden sm:table-cell">
                     <span className="font-bold text-[#5C6B65]">{s.prix != null ? `${s.prix.toFixed(2)}€` : '—'}</span>
@@ -1041,10 +1109,10 @@ function TabAbonnes({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Box</label>
-                  <select value={form.box_id ?? ''} onChange={(e) => setForm({ ...form, box_id: e.target.value })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] bg-white">
-                    <option value="">— Aucune —</option>
-                    {boxSizes.map((b) => <option key={b.id} value={b.id}>{b.label}</option>)}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Type d&apos;abonnement</label>
+                  <select value={form.type_abonnement ?? 'ce-salarie'} onChange={(e) => setForm({ ...form, type_abonnement: e.target.value as Abonne['type_abonnement'] })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65] bg-white">
+                    <option value="ce-salarie">Salarié CE</option>
+                    <option value="entreprise">Entreprise</option>
                   </select>
                 </div>
                 <div>
@@ -1060,10 +1128,17 @@ function TabAbonnes({
                   <label className="block text-sm font-medium text-gray-700 mb-1">Prix (€ HT/mois)</label>
                   <input type="number" step="0.01" value={form.prix ?? ''} onChange={(e) => setForm({ ...form, prix: e.target.value === '' ? undefined : parseFloat(e.target.value) })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Code CE</label>
-                  <input value={form.ce_code ?? ''} onChange={(e) => setForm({ ...form, ce_code: e.target.value.toUpperCase() })} placeholder="Optionnel" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#5C6B65]" />
-                </div>
+                {form.type_abonnement === 'entreprise' ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantité de box</label>
+                    <input type="number" min={1} step="1" value={form.quantite ?? 1} onChange={(e) => setForm({ ...form, quantite: e.target.value === '' ? undefined : parseInt(e.target.value, 10) })} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5C6B65]" />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Code CE</label>
+                    <input value={form.ce_code ?? ''} onChange={(e) => setForm({ ...form, ce_code: e.target.value.toUpperCase() })} placeholder="Optionnel" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:border-[#5C6B65]" />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>

@@ -18,7 +18,7 @@ export default function CGVPage() {
           </div>
           <div className="flex items-center gap-3">
             <Cookie className="w-6 h-6 text-[#F48F98]" />
-            <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif' }}>Conditions Générales de Vente</h1>
+            <h1 className="text-2xl font-bold">Conditions Générales de Vente</h1>
           </div>
           <p className="text-[#E3D4BD] text-sm mt-2">Dernière mise à jour : juin 2026</p>
         </div>

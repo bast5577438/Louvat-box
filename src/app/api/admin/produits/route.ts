@@ -9,6 +9,8 @@ const DEFAULT_ADMIN_PASSWORD = 'louvat1954';
 
 // Nombre maximum de produits simultanément disponibles dans la box.
 const MAX_PRODUITS_DISPONIBLES = 10;
+// Nombre de produits qui composent la box du mois (fixe pour tous les abonnés).
+const MAX_BOX_DU_MOIS = 3;
 
 function isAuthorized(request: Request): boolean {
   const provided = request.headers.get('x-admin-password') ?? '';
@@ -125,6 +127,25 @@ export async function PUT(request: Request) {
     if ((count ?? 0) >= MAX_PRODUITS_DISPONIBLES) {
       return NextResponse.json(
         { error: `Vous ne pouvez pas avoir plus de ${MAX_PRODUITS_DISPONIBLES} produits disponibles en même temps. Désactivez-en un avant d'en activer un nouveau.` },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (updates.mois_actif === true) {
+    const { count, error: countError } = await supabase
+      .from('produits')
+      .select('id', { count: 'exact', head: true })
+      .eq('mois_actif', true)
+      .neq('id', id);
+
+    if (countError) {
+      console.error('Erreur Supabase (comptage box du mois) :', countError);
+      return NextResponse.json({ error: 'Impossible de vérifier la box du mois.' }, { status: 500 });
+    }
+    if ((count ?? 0) >= MAX_BOX_DU_MOIS) {
+      return NextResponse.json(
+        { error: `La box du mois contient déjà ${MAX_BOX_DU_MOIS} produits. Retirez-en un avant d'en ajouter un nouveau.` },
         { status: 400 }
       );
     }
